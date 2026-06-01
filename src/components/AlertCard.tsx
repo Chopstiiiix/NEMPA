@@ -15,7 +15,7 @@ function timeAgo(iso: string): string {
 
 export default function AlertCard({ alert }: { alert: Alert }) {
   const meta = typeMeta[alert.type] ?? { label: alert.type, cls: 'missing' };
-  const live = alert.status === 'verified';
+  const resolved = alert.status === 'resolved';
 
   return (
     <Link to={`/alert/${alert.id}`} className={`card alert-card alert-card--${meta.cls}`}>
@@ -26,11 +26,9 @@ export default function AlertCard({ alert }: { alert: Alert }) {
       <div className="alert-card__body">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className={`badge badge--${meta.cls}`}>{meta.label}</span>
-          {live && (
-            <span className="badge badge--live">
-              <span className="status-dot status-dot--live" /> Live
-            </span>
-          )}
+          <span className={`badge ${resolved ? 'badge--resolved' : 'badge--unresolved'}`}>
+            {resolved ? 'Resolved' : 'Unresolved'}
+          </span>
         </div>
         <h3 className="alert-card__title">{alert.title}</h3>
         <p className="alert-card__meta">

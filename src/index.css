@@ -182,6 +182,8 @@ a { color: inherit; }
 .badge--robbery  { color: var(--critical); background: var(--critical-weak); border-color: color-mix(in srgb, var(--critical) 30%, transparent); }
 .badge--live     { color: var(--live);     background: var(--live-weak);     border-color: color-mix(in srgb, var(--live) 30%, transparent); }
 .badge--pending  { color: var(--text-dim); background: var(--surface-2);     border-color: var(--border); }
+.badge--resolved   { color: var(--live);     background: var(--live-weak);     border-color: color-mix(in srgb, var(--live) 30%, transparent); }
+.badge--unresolved { color: var(--critical); background: var(--critical-weak); border-color: color-mix(in srgb, var(--critical) 30%, transparent); }
 
 /* ============================================================
    Cards

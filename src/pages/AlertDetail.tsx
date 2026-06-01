@@ -27,16 +27,14 @@ export default function AlertDetail() {
 
   const typeCls = alert.type === 'robbery' ? 'robbery' : 'missing';
   const typeLabel = alert.type === 'robbery' ? 'Robbery' : 'Missing';
-  const live = alert.status === 'verified';
+  const resolved = alert.status === 'resolved';
 
   const badges = (
     <>
       <span className={`badge badge--${typeCls}`}>{typeLabel}</span>
-      {live && (
-        <span className="badge badge--live">
-          <span className="status-dot status-dot--live" /> Live
-        </span>
-      )}
+      <span className={`badge ${resolved ? 'badge--resolved' : 'badge--unresolved'}`}>
+        {resolved ? 'Resolved' : 'Unresolved'}
+      </span>
     </>
   );
 

@@ -5,9 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0F1115" />
     <title>NEMPA</title>
+    <style>
+      /* Boot splash: the bird glimmer paints instantly on launch and is
+         replaced the moment React renders the app into #root. */
+      html, body { margin: 0; height: 100%; background: #0A0C10; }
+      #boot {
+        position: fixed; inset: 0; z-index: 9999;
+        display: grid; place-items: center; background: #0A0C10;
+      }
+      #boot .bird {
+        width: 96px; aspect-ratio: 810 / 624;
+        -webkit-mask: url(/nempa-logo.png) center / contain no-repeat;
+        mask: url(/nempa-logo.png) center / contain no-repeat;
+        background-color: #626b79;
+        background-image: linear-gradient(105deg,
+          transparent 0%, transparent 42%, #ffffff 50%, transparent 58%, transparent 100%);
+        background-repeat: no-repeat;
+        background-size: 260% 100%;
+        animation: bootGlimmer 1.7s ease-in-out infinite alternate;
+      }
+      @keyframes bootGlimmer {
+        from { background-position: 135% 50%; }
+        to   { background-position: -35% 50%; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot"><div class="bird"></div></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
