@@ -132,16 +132,17 @@ a { color: inherit; }
   letter-spacing: -0.03em;
 }
 .app-bar__brand b { color: var(--brand); }
+.app-bar__logo { height: 24px; width: auto; display: block; }
 .app-bar__tag {
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em;
   text-transform: uppercase; color: var(--text-mute); margin-left: auto;
 }
 
+/* Page enter/exit is handled by framer-motion in App.tsx.
+   Extra bottom padding clears the floating nav dock. */
 .page {
-  padding: var(--s5) var(--s4) calc(var(--nav-h) + var(--s7));
-  animation: pageIn 0.4s var(--ease-out) both;
+  padding: var(--s5) var(--s4) calc(var(--nav-h) + var(--s8));
 }
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 .page__title { font-size: 30px; margin-bottom: var(--s1); }
 .page__sub {
@@ -217,12 +218,6 @@ a { color: inherit; }
   letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .alert-card__meta { font-size: 13px; color: var(--text-dim); }
-/* left signal rail keyed to type */
-.alert-card::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-}
-.alert-card--missing::before { background: var(--missing); }
-.alert-card--robbery::before { background: var(--critical); }
 
 /* staggered list reveal */
 .stagger > * { animation: cardIn 0.45s var(--ease-out) both; }
@@ -267,12 +262,18 @@ a { color: inherit; }
 /* segmented control (filters / type toggle) */
 .segment { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px; }
 .segment__item {
-  flex: 1; text-align: center; padding: 9px 10px; border-radius: 7px;
+  flex: 1; position: relative; text-align: center; padding: 9px 10px; border-radius: 7px;
   font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase;
   font-weight: 600; color: var(--text-dim); background: transparent; border: none; cursor: pointer;
-  transition: background 0.18s var(--ease), color 0.18s;
+  transition: color 0.2s var(--ease);
 }
-.segment__item--on { color: #fff; background: var(--surface-3); box-shadow: var(--shadow-1); }
+.segment__label { position: relative; z-index: 1; }
+.segment__pill {
+  position: absolute; inset: 0; z-index: 0; border-radius: 7px;
+  background: var(--surface-3);
+  box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.segment__item--on { color: #fff; }
 .segment__item--on.is-missing { color: var(--missing); }
 .segment__item--on.is-robbery { color: var(--critical); }
 
@@ -351,31 +352,47 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 /* ============================================================
    Bottom navigation
    ============================================================ */
+/* Floating dock (ASOS-style): detached, pill-shaped, glassy, elevated. */
 .nav {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: var(--app-max); z-index: 40;
-  display: flex; height: var(--nav-h);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border-top: 1px solid var(--hairline);
-  padding-bottom: env(safe-area-inset-bottom);
+  position: fixed; z-index: 40;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 14px);
+  width: min(calc(100% - 32px), 430px);
+  display: flex; align-items: stretch;
+  height: 62px; padding: 6px;
+  background: color-mix(in srgb, var(--surface-2) 84%, transparent);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  box-shadow:
+    0 14px 34px -12px rgba(0,0,0,0.7),
+    0 4px 12px -6px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.07);
 }
 .nav__item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; text-decoration: none; color: var(--text-mute);
-  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
-  transition: color 0.18s var(--ease); position: relative;
+  flex: 1; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill); text-decoration: none;
+  color: var(--text-mute); transition: color 0.25s var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
-.nav__item-icon { font-size: 19px; line-height: 1; }
+.nav__pill {
+  position: absolute; inset: 0; border-radius: var(--r-pill); z-index: 0;
+  background: color-mix(in srgb, var(--surface-3) 82%, var(--brand) 12%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 8px -3px rgba(0,0,0,0.5);
+}
+.nav__item-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.nav__icon { height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+.nav__icon svg { display: block; }
+.nav__item-icon { font-size: 20px; line-height: 1; }
 .nav__item--on { color: var(--text); }
-.nav__item--on::before {
-  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 26px; height: 2px; border-radius: 2px; background: var(--brand);
-  box-shadow: 0 0 10px var(--brand);
-}
 .nav__item--review.nav__item--on { color: var(--live); }
-.nav__item--review.nav__item--on::before { background: var(--live); box-shadow: 0 0 10px var(--live); }
+.nav__item--review .nav__pill { background: color-mix(in srgb, var(--surface-3) 82%, var(--live) 14%); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

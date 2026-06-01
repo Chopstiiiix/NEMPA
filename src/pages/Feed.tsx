@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import AlertCard from '../components/AlertCard';
 import type { Alert, AlertType } from '../types';
@@ -42,7 +43,16 @@ export default function Feed() {
               aria-pressed={on}
               className={`segment__item${on ? ' segment__item--on' + mod : ''}`}
             >
-              {f === 'all' ? 'All' : f === 'missing_person' ? 'Missing' : 'Robbery'}
+              {on && (
+                <motion.span
+                  layoutId="filterPill"
+                  className="segment__pill"
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                />
+              )}
+              <span className="segment__label">
+                {f === 'all' ? 'All' : f === 'missing_person' ? 'Missing' : 'Robbery'}
+              </span>
             </button>
           );
         })}

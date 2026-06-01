@@ -1,15 +1,20 @@
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useRole } from '../lib/useRole';
+import { BellIcon, PersonIcon } from './icons';
 
-interface Tab { to: string; label: string; icon: string; key?: string }
+interface Tab { to: string; label: string; render: (active: boolean) => ReactNode; key?: string }
+
+const glyph = (g: string) => () => <span className="nav__item-icon">{g}</span>;
 
 const baseTabs: Tab[] = [
-  { to: '/', label: 'Alerts', icon: '◎' },
-  { to: '/report', label: 'Report', icon: '＋' },
-  { to: '/account', label: 'Account', icon: '☷' },
+  { to: '/', label: 'Alerts', render: (a) => <BellIcon active={a} /> },
+  { to: '/report', label: 'Report', render: glyph('＋') },
+  { to: '/account', label: 'Account', render: (a) => <PersonIcon active={a} /> },
 ];
 
-const reviewTab: Tab = { to: '/moderate', label: 'Review', icon: '✓', key: 'review' };
+const reviewTab: Tab = { to: '/moderate', label: 'Review', render: glyph('✓'), key: 'review' };
 
 export default function Nav() {
   const { isStaff } = useRole();
@@ -28,8 +33,21 @@ export default function Nav() {
             `nav__item${t.key === 'review' ? ' nav__item--review' : ''}${isActive ? ' nav__item--on' : ''}`
           }
         >
-          <span className="nav__item-icon">{t.icon}</span>
-          {t.label}
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId="navPill"
+                  className="nav__pill"
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                />
+              )}
+              <span className="nav__item-content">
+                <span className="nav__icon">{t.render(isActive)}</span>
+                {t.label}
+              </span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
