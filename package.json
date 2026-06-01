@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "sync": "npm run build && npx cap sync",
     "android": "npm run sync && npx cap open android",
-    "ios": "npm run sync && npx cap open ios"
+    "ios": "npm run sync && npx cap open ios",
+    "emu": "./scripts/run-android.sh",
+    "emu:build": "./scripts/run-android.sh --build"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "^6.3.1",
