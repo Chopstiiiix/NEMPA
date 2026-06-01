@@ -1,0 +1,31 @@
+node_modules
+dist
+.env
+.env.local
+.DS_Store
+*.log
+
+# Build / tooling output
+*.tsbuildinfo
+
+# Android native (not generated yet)
+/android
+
+# iOS — commit the project (native config + icon) but not generated/heavy bits
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/DerivedData/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Firebase / push secrets — DO NOT COMMIT
+google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# Service account keys
+*serviceaccount*.json
+*firebase-adminsdk*.json
