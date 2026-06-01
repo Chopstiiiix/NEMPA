@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import AlertCard from '../components/AlertCard';
+import { PageLoader } from '../components/Loader';
 import type { Alert, AlertType } from '../types';
 
 export default function Feed() {
@@ -59,11 +60,7 @@ export default function Feed() {
       </div>
 
       {loading ? (
-        <div className="stagger">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card skeleton" style={{ height: 96, marginBottom: 'var(--s3)' }} />
-          ))}
-        </div>
+        <PageLoader />
       ) : alerts.length === 0 ? (
         <div className="empty">
           <span className="empty__icon">◎</span>

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import AlertMap from '../components/AlertMap';
+import { BellIcon, PersonIcon } from '../components/icons';
+import { PageLoader } from '../components/Loader';
 import type { Alert, GeoPoint } from '../types';
 
 export default function AlertDetail() {
@@ -16,15 +18,7 @@ export default function AlertDetail() {
     })();
   }, [id]);
 
-  if (!alert)
-    return (
-      <div className="page">
-        <div className="card skeleton" style={{ height: 240, marginBottom: 'var(--s4)' }} />
-        <div className="card skeleton" style={{ height: 28, width: '70%', marginBottom: 'var(--s3)' }} />
-        <div className="card skeleton" style={{ height: 14, width: '40%', marginBottom: 'var(--s4)' }} />
-        <div className="card skeleton" style={{ height: 80 }} />
-      </div>
-    );
+  if (!alert) return <div className="page"><PageLoader /></div>;
 
   const point: GeoPoint | null =
     alert.last_seen_lat != null && alert.last_seen_lng != null
@@ -48,40 +42,17 @@ export default function AlertDetail() {
 
   return (
     <div className="page">
-      {alert.photo_url ? (
-        <div
-          style={{
-            position: 'relative',
-            borderRadius: 'var(--r)',
-            overflow: 'hidden',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-2)',
-            marginBottom: 'var(--s4)',
-          }}
-        >
-          <img
-            src={alert.photo_url}
-            alt=""
-            style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: 'var(--s3)',
-              left: 'var(--s3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            {badges}
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--s3)' }}>
-          {badges}
-        </div>
-      )}
+      <div className={`detail-photo${alert.photo_url ? '' : ' detail-photo--empty'}`}>
+        {alert.photo_url ? (
+          <img src={alert.photo_url} alt={alert.title} />
+        ) : (
+          <span className="detail-photo__placeholder">
+            {alert.type === 'robbery' ? <BellIcon active={false} size={88} /> : <PersonIcon active={false} size={88} />}
+            <span className="mono" style={{ marginTop: 'var(--s3)' }}>No photo provided</span>
+          </span>
+        )}
+        <div className="detail-photo__badges">{badges}</div>
+      </div>
 
       <h1 className="page__title">{alert.title}</h1>
 

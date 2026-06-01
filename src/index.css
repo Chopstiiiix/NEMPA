@@ -318,6 +318,31 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 }
 .empty__icon { font-size: 34px; opacity: 0.6; }
 
+/* NEMPA bird loader — light glimmer sweeping across the masked silhouette */
+.page-loader { display: grid; place-items: center; min-height: 56vh; }
+.bird-loader {
+  aspect-ratio: 810 / 624;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+  /* solid base so any strip the moving gradient doesn't cover stays the
+     bird's base colour instead of going transparent (the dark "cut" line) */
+  background-color: var(--text-mute);
+  background-image: linear-gradient(
+    105deg,
+    transparent 0%, transparent 42%,
+    #ffffff 50%,
+    transparent 58%, transparent 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 260% 100%;
+  animation: birdGlimmer 1.7s ease-in-out infinite alternate;
+}
+@keyframes birdGlimmer {
+  from { background-position: 135% 50%; }
+  to   { background-position: -35% 50%; }
+}
+
 .skeleton {
   position: relative; overflow: hidden; background: var(--surface-2);
   border-radius: var(--r-sm);
@@ -339,6 +364,35 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 }
 .notice--warn { border-left-color: var(--missing); }
 .notice--error { border-left-color: var(--critical); }
+
+/* ============================================================
+   Alert detail hero photo — full-width square
+   ============================================================ */
+.detail-photo {
+  position: relative; width: 100%; aspect-ratio: 1 / 1;
+  border-radius: var(--r); overflow: hidden;
+  border: 1px solid var(--border); box-shadow: var(--shadow-2);
+  background: var(--surface-2); margin-bottom: var(--s4);
+}
+.detail-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-photo--empty {
+  display: grid; place-items: center;
+  background:
+    radial-gradient(80% 80% at 50% 40%, var(--surface-3), var(--surface-2));
+}
+.detail-photo__placeholder {
+  display: flex; flex-direction: column; align-items: center;
+  color: var(--text-mute); opacity: 0.7;
+}
+/* top scrim so overlaid badges stay legible on light photos */
+.detail-photo::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 96px; z-index: 1;
+  background: linear-gradient(180deg, rgba(0,0,0,0.5), transparent); pointer-events: none;
+}
+.detail-photo__badges {
+  position: absolute; top: var(--s3); left: var(--s3); z-index: 2;
+  display: flex; align-items: center; gap: 8px;
+}
 
 /* ============================================================
    Map frame

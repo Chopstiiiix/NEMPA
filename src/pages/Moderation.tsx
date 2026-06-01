@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useRole } from '../lib/useRole';
+import { PageLoader } from '../components/Loader';
 import type { Alert } from '../types';
 
 const typeLabel: Record<string, string> = {
@@ -73,7 +74,7 @@ export default function Moderation() {
     setNotice(`Rejected "${alert.title}".`);
   }
 
-  if (roleLoading) return <div className="page">Loading…</div>;
+  if (roleLoading) return <div className="page"><PageLoader /></div>;
 
   if (!isStaff) {
     return (
@@ -99,7 +100,7 @@ export default function Moderation() {
 
       {notice && <p className="notice">{notice}</p>}
 
-      {loading ? <p style={{ color: 'var(--text-dim)' }}>Loading…</p>
+      {loading ? <PageLoader />
         : pending.length === 0 ? (
           <div className="empty">
             <span className="empty__icon">✓</span>
