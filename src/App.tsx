@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useSwipeBack } from './lib/useSwipeBack';
 import Nav from './components/Nav';
 import Feed from './pages/Feed';
 import ReportForm from './pages/ReportForm';
@@ -10,6 +11,7 @@ import logo from './assets/nempa-logo.png';
 
 function AnimatedRoutes() {
   const location = useLocation();
+  useSwipeBack();
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
