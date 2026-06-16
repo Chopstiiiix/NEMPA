@@ -51,13 +51,16 @@ export default function ReportForm() {
 
   async function submit() {
     setSubmitting(true);
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) { setSubmitting(false); nav('/account'); return; }
+    // getSession() (local, no network) — getUser() can return null in the
+    // WKWebView and bounce a signed-in user to /account when filing a report.
+    const { data: auth } = await supabase.auth.getSession();
+    const user = auth.session?.user ?? null;
+    if (!user) { setSubmitting(false); nav('/account'); return; }
 
     let photoUrl: string | null = null;
     if (photo) {
       try {
-        photoUrl = await uploadAlertPhoto(photo, auth.user.id);
+        photoUrl = await uploadAlertPhoto(photo, user.id);
       } catch (e) {
         setSubmitting(false);
         return alert(`Photo upload failed: ${(e as Error).message}`);
@@ -75,7 +78,7 @@ export default function ReportForm() {
       person_age: form.person_age ? Number(form.person_age) : null,
       last_seen_address: form.address || null,
       last_seen_location: loc ? toPointWKT(loc) : null,
-      reporter_id: auth.user.id,
+      reporter_id: user.id,
     });
     setSubmitting(false);
     if (error) return alert(error.message);

@@ -71,6 +71,16 @@ Push now uses **`@capacitor-firebase/messaging`** (not `@capacitor/push-notifica
 
 Server side (FCM secrets) is already done, so once a device registers its token, broadcasts deliver.
 
+### Android native (generated 2026-06-01)
+
+`android/` project generated (`npx cap add android`; uses Android Studio's bundled JDK 21 + SDK at `~/Library/Android/sdk`). Package `ng.nempa.app`, `compileSdk 34`. Launcher icons (bird/eye) generated via `@capacitor/assets`. FCM Gradle wiring is **already in place** — Capacitor's `android/app/build.gradle` auto-applies the `com.google.gms.google-services` plugin when `google-services.json` is present, and `@capacitor-firebase/messaging` pulls in the Firebase SDK.
+
+**Still requires you (Firebase console — same project `nempa-22521`):**
+1. Firebase → add an **Android app** with package `ng.nempa.app` → download **`google-services.json`** → drop it into **`android/app/`**. (FCM uses the APNs-equivalent automatically on Android; no extra key needed.)
+2. Build/run: open Android Studio (`npm run android`) on a real device or emulator with Google Play services. The token registers the same way (`@capacitor-firebase/messaging`) and broadcasts deliver.
+
+To build from CLI: set `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"` and `ANDROID_HOME="$HOME/Library/Android/sdk"`, then `cd android && ./gradlew :app:assembleDebug`.
+
 ---
 
 ## First-run setup (do these in order)

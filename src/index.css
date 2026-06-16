@@ -395,11 +395,26 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
   position: absolute; top: var(--s3); left: var(--s3); z-index: 2;
   display: flex; align-items: center; gap: 8px;
 }
+/* Badges overlaid on a photo use SOLID fills (not the translucent --*-weak
+   tints) so they read clearly against the image. Dark text on the light
+   amber/green, white text on red. */
+.detail-photo__badges .badge { border-color: transparent; }
+.detail-photo__badges .badge--missing    { background: var(--missing);  color: #1A1206; }
+.detail-photo__badges .badge--robbery,
+.detail-photo__badges .badge--unresolved  { background: var(--critical); color: #FFFFFF; }
+.detail-photo__badges .badge--resolved,
+.detail-photo__badges .badge--live        { background: var(--live);     color: #07140D; }
+.detail-photo__badges .badge--pending     { background: var(--text-dim); color: #0B0E13; }
 
 /* ============================================================
    Map frame
    ============================================================ */
 .map-frame {
+  position: relative;
+  /* Contain Leaflet's internal z-indexes (panes/controls go up to ~1000) in
+     their own stacking context so they can't paint over the fixed dock; the
+     map then scrolls behind the dock like the rest of the page. */
+  isolation: isolate;
   border-radius: var(--r); overflow: hidden; border: 1px solid var(--border);
   box-shadow: var(--shadow-1);
 }

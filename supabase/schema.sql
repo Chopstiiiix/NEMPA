@@ -154,6 +154,15 @@ alter function handle_new_user() set search_path = public;
 alter function is_staff() set search_path = public;
 alter function devices_near(double precision, double precision, double precision) set search_path = public;
 
+-- handle_new_user() only ever runs from the on_auth_user_created trigger, never
+-- as a direct RPC call. Revoke EXECUTE so it isn't exposed via /rest/v1/rpc
+-- (Supabase linter 0028/0029). Triggers don't check caller EXECUTE, so signup
+-- still works. NOTE: do NOT do the same for is_staff() — it's referenced inside
+-- the alerts RLS policy, and anon/authenticated need EXECUTE on it or every feed
+-- query fails with "permission denied for function is_staff". Its RPC exposure is
+-- harmless (returns a boolean about the caller's own role; anon always gets false).
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
 -- ============================================================
 -- 12. Storage: public-read bucket for report photos.
 -- ============================================================
@@ -163,5 +172,9 @@ on conflict (id) do nothing;
 
 create policy "alert-photos upload" on storage.objects for insert to authenticated
   with check (bucket_id = 'alert-photos');
-create policy "alert-photos read" on storage.objects for select
-  using (bucket_id = 'alert-photos');
+-- NOTE: no broad SELECT policy on storage.objects for this bucket. The bucket is
+-- public, so photos are served via getPublicUrl() (the /object/public/ CDN path,
+-- which bypasses RLS). A `for select using (bucket_id = 'alert-photos')` policy is
+-- unnecessary for display and would let anyone *list/enumerate* every file in the
+-- bucket (Supabase linter 0025). If you ever need authenticated listing, scope it
+-- to the owner's own folder: using (bucket_id = 'alert-photos' and owner = auth.uid()).

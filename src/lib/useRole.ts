@@ -23,8 +23,10 @@ export function useRole(): RoleState {
     let active = true;
 
     async function resolve() {
-      const { data: auth } = await supabase.auth.getUser();
-      const user = auth.user;
+      // getSession() (local, no network) — getUser() can return null in the
+      // WKWebView and wrongly drop the Review tab for a signed-in moderator.
+      const { data: auth } = await supabase.auth.getSession();
+      const user = auth.session?.user ?? null;
       if (!user) {
         if (active) setState({ userId: null, role: null, isStaff: false, loading: false });
         return;

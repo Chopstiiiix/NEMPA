@@ -8,8 +8,19 @@ dist
 # Build / tooling output
 *.tsbuildinfo
 
-# Android native (not generated yet)
-/android
+# Android — commit the project + icons, exclude generated/heavy/secret bits
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/capacitor.settings.gradle
+android/local.properties
+android/.idea/
+*.apk
+*.aab
+*.keystore
 
 # iOS — commit the project (native config + icon) but not generated/heavy bits
 ios/App/Pods/
@@ -29,3 +40,6 @@ GoogleService-Info.plist
 # Service account keys
 *serviceaccount*.json
 *firebase-adminsdk*.json
+
+# Supabase CLI local temp (project-ref, cli version cache)
+supabase/.temp/

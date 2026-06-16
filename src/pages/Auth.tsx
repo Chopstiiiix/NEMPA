@@ -11,7 +11,10 @@ export default function Auth() {
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    // Use getSession() (reads local/in-memory session, no network) — NOT getUser(),
+    // whose network call can resolve to null in the WKWebView and clobber the real
+    // session set by onAuthStateChange, falsely showing the user as signed out.
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
       if (session?.user) registerPush(session.user.id);
