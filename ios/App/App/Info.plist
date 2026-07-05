@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>NEMPA</string>
+        <string>Sparrowtell</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,14 +48,18 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>audio</string>
+		<string>location</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>NEMPA uses your camera to attach a photo to a missing-person or incident report.</string>
+	<string>Sparrowtell uses your camera to attach a photo to a missing-person or incident report.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>NEMPA lets you choose a photo from your library to attach to a report.</string>
+	<string>Sparrowtell lets you choose a photo from your library to attach to a report.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>NEMPA may save report photos to your library.</string>
+	<string>Sparrowtell may save report photos to your library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>NEMPA uses your location to tag where an incident occurred and to alert you to nearby emergencies.</string>
+	<string>Sparrowtell uses your location to tag where an incident occurred and to alert you to nearby emergencies.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>During a danger alert, Sparrowtell records background audio as evidence for responders. Recording only happens while an alert you triggered is active.</string>
 </dict>
 </plist>

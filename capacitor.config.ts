@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'ng.nempa.app',
-  appName: 'NEMPA',
+  appId: 'ng.nempa.app', // bundle id is frozen (store identity) — brand is Sparrowtell
+  appName: 'Sparrowtell',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
@@ -15,7 +15,7 @@ const config: CapacitorConfig = {
     },
     LocalNotifications: {
       smallIcon: 'ic_stat_alert',
-      iconColor: '#E8511A',
+      iconColor: '#294922',
     },
   },
 };

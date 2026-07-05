@@ -23,6 +23,43 @@ export interface Alert {
   resolved_at: string | null;
 }
 
+export type SosKind = 'sos' | 'danger';
+export type SosStatus = 'active' | 'resolved' | 'cancelled';
+
+export interface SosEvent {
+  id: string;
+  user_id: string;
+  kind: SosKind;
+  priority: 'high' | 'critical';
+  status: SosStatus;
+  lat: number | null;               // from the sos_events_geo view
+  lng: number | null;
+  address: string | null;
+  audio_path: string | null;        // storage path in the private sos-evidence bucket
+  notes: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+}
+
+export interface SosPing {
+  id: number;
+  sos_id: string;
+  lat: number;                      // from the sos_pings_geo view
+  lng: number;
+  accuracy_m: number | null;
+  created_at: string;
+}
+
+export interface EmergencyContact {
+  id: string;
+  user_id: string;
+  name: string;
+  phone: string;
+  relation: string | null;
+  created_at: string;
+}
+
 export interface NewAlert {
   type: AlertType;
   title: string;

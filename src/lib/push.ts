@@ -30,10 +30,12 @@ export async function registerPush(userId: string) {
     if (event.token) await saveDeviceToken(userId, event.token);
   });
 
-  // Deep-link into the alert when a notification is tapped.
+  // Deep-link when a notification is tapped: alerts open their detail page,
+  // SOS dispatches drop a moderator straight into the review queue.
   await FirebaseMessaging.addListener('notificationActionPerformed', (action) => {
-    const alertId = (action.notification?.data as Record<string, unknown> | undefined)?.alert_id;
-    if (typeof alertId === 'string') window.location.hash = `/alert/${alertId}`;
+    const data = action.notification?.data as Record<string, unknown> | undefined;
+    if (typeof data?.alert_id === 'string') window.location.hash = `/alert/${data.alert_id}`;
+    else if (typeof data?.sos_id === 'string') window.location.hash = '/moderate';
   });
 }
 

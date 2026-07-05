@@ -1,6 +1,8 @@
-# NEMPA — Claude Code Handoff
+# Sparrow — Claude Code Handoff
 
-**NEMPA** = Nigerian Emergency Missing Person Alert. A community safety app for **missing-person** and **robbery** alerts, broadcasting push notifications to users near an incident. Web (React + Vite + TS) wrapped with **Capacitor** for Android + iOS. Backend is **Supabase** (Postgres + PostGIS + Auth + Storage + Edge Functions). Push via **Firebase Cloud Messaging (FCM)**.
+> **Renamed 2026-07-05: the app is now branded "Sparrowtell"** (briefly "Sparrow", but that App Store name was taken; formerly NEMPA — Nigerian Emergency Missing Person Alert). All user-facing strings, app display names, and the Gecko Intel integration use Sparrowtell. Internal identifiers kept the short form: logo assets `sparrow-logo.png`, gecko route `/api/sparrow`, env vars `SPARROW_SUPABASE_*`, data key `sparrow_alerts`. Identifiers that are expensive/impossible to change keep the old name: bundle/app id `ng.nempa.app`, Firebase project `nempa-22521`, Supabase project name `NEMPA` (ref `ticnoeumdvticwtuaujd`), the `~/NEMPA` folder, and the GitHub repo. Where this doc says "NEMPA" below, read it as historical/infra naming.
+
+**Sparrow** is a community safety app for **missing-person** and **robbery** alerts, broadcasting push notifications to users near an incident. Web (React + Vite + TS) wrapped with **Capacitor** for Android + iOS. Backend is **Supabase** (Postgres + PostGIS + Auth + Storage + Edge Functions). Push via **Firebase Cloud Messaging (FCM)**.
 
 > ⚠️ Not affiliated with the US AMBER Alert system. Brand strictly as a *community* alert tool. Moderation is mandatory before any broadcast.
 

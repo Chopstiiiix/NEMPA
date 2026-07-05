@@ -1,7 +1,7 @@
-import logo from '../assets/nempa-logo.png';
+import logo from '../assets/sparrow-logo.png';
 
 /**
- * The NEMPA bird mark with a glimmer of light sweeping back and forth across
+ * The Sparrowtell bird mark with a glimmer of light sweeping back and forth across
  * its surface. The logo PNG is used as a CSS mask, so the animated highlight
  * gradient is clipped to the bird silhouette (the eye stays a cutout).
  */

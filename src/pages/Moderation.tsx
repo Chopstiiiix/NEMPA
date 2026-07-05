@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useRole } from '../lib/useRole';
 import { PageLoader } from '../components/Loader';
+import SosQueue from '../components/SosQueue';
 import type { Alert } from '../types';
 
 const typeLabel: Record<string, string> = {
@@ -97,6 +98,8 @@ export default function Moderation() {
     <div className="page">
       <h1 className="page__title">Moderation</h1>
       <p className="page__sub">Pending reports — verify to broadcast</p>
+
+      <SosQueue userId={userId} />
 
       {notice && <p className="notice">{notice}</p>}
 

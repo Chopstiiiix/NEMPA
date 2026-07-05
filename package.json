@@ -1,9 +1,9 @@
 {
-  "name": "nempa",
+  "name": "sparrowtell",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "NEMPA — Nigerian Emergency Missing Person Alert. Community safety alert app (missing persons + robbery), Capacitor for Android/iOS.",
+  "description": "Sparrowtell — Nigerian community safety alert app (missing persons, robbery, SOS), Capacitor for Android/iOS.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -1,13 +1,15 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSwipeBack } from './lib/useSwipeBack';
+import { armSos } from './lib/sos';
 import Nav from './components/Nav';
+import SosOverlay from './components/SosOverlay';
 import Feed from './pages/Feed';
 import ReportForm from './pages/ReportForm';
 import AlertDetail from './pages/AlertDetail';
 import Auth from './pages/Auth';
 import Moderation from './pages/Moderation';
-import logo from './assets/nempa-logo.png';
+import logo from './assets/sparrow-logo.png';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -38,11 +40,15 @@ export default function App() {
     <HashRouter>
       <div className="app">
         <header className="app-bar">
-          <img src={logo} className="app-bar__logo" alt="NEMPA" />
+          <img src={logo} className="app-bar__logo" alt="Sparrowtell" />
           <span className="app-bar__tag">Community Alert Network</span>
+          <button className="sos-chip" onClick={() => void armSos('sos')} aria-label="Trigger SOS">
+            SOS
+          </button>
         </header>
         <AnimatedRoutes />
         <Nav />
+        <SosOverlay />
       </div>
     </HashRouter>
   );
