@@ -2,9 +2,10 @@
 -- Sparrowtell — direct-publish reports (applied 2026-07-05)
 -- Reports now go live the moment they're filed; moderation is
 -- retroactive (take down false reports) instead of a pre-gate.
--- Also adds a PII-safe side table for the reporter's optional
--- phone + NIN: NEVER exposed publicly — reporter + staff only
--- (the alerts table itself is publicly readable once verified).
+-- Also adds a PII-safe side table for the MISSING PERSON's optional
+-- phone + NIN (filled by the reporter if known): NEVER exposed
+-- publicly — reporter + staff only (the alerts table itself is
+-- publicly readable once verified).
 -- Idempotent: safe to re-run.
 -- ============================================================
 
@@ -13,12 +14,13 @@ drop policy if exists "file report" on alerts;
 create policy "file report" on alerts for insert
   with check (auth.uid() = reporter_id and status in ('pending', 'verified'));
 
--- 2. Reporter contact details — separate table so RLS can keep it
---    off the public alert surface (alerts_geo / alerts selects).
+-- 2. Missing person's private details — separate table so RLS can keep
+--    it off the public alert surface (alerts_geo / alerts selects).
+--    (Table name kept for back-compat; columns describe the person.)
 create table if not exists alert_reporter_details (
   alert_id    uuid primary key references alerts(id) on delete cascade,
-  phone       text,
-  nin         text,               -- National Identification Number (optional)
+  phone       text,               -- missing person's phone, if known
+  nin         text,               -- missing person's NIN, if known
   created_at  timestamptz not null default now()
 );
 

@@ -25,9 +25,14 @@ export async function pickPhotoNative(): Promise<Blob | null> {
 export async function uploadAlertPhoto(blob: Blob, userId: string): Promise<string> {
   const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
   const path = `${userId}/${Date.now()}-${Math.round(performance.now())}.${ext}`;
-  const { error } = await supabase.storage
+  // Cap the upload wait — a stalled connection must surface as an error the
+  // form can show, never an endless "Sending…".
+  const upload = supabase.storage
     .from('alert-photos')
     .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('upload timed out — check your connection')), 30_000));
+  const { error } = await Promise.race([upload, timeout]);
   if (error) throw error;
   return supabase.storage.from('alert-photos').getPublicUrl(path).data.publicUrl;
 }

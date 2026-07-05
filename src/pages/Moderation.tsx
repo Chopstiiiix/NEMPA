@@ -150,7 +150,7 @@ export default function Moderation() {
               )}
               {det && (det.phone || det.nin) && (
                 <p className="mono" style={{ fontSize: 12, margin: '6px 0', textTransform: 'none' }}>
-                  Reporter{det.phone && <> · <a href={`tel:${det.phone}`} style={{ color: 'var(--brand)' }}>{det.phone}</a></>}
+                  Person (private){det.phone && <> · <a href={`tel:${det.phone}`} style={{ color: 'var(--brand)' }}>{det.phone}</a></>}
                   {det.nin && <> · NIN {det.nin}</>}
                 </p>
               )}

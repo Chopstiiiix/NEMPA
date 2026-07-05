@@ -27,11 +27,17 @@ export default function Auth() {
     setMsg('');
     try {
       // Call directly — extracting these methods detaches `this` and throws.
-      const { error } = mode === 'signin'
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
-      if (error) setMsg(error.message);
-      else if (mode === 'signup') setMsg('Account created — signing you in…');
+      if (mode === 'signin') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) setMsg(error.message);
+      } else {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) setMsg(error.message);
+        // With "Confirm email" ON, signUp returns a user but NO session —
+        // don't claim we're signing in when we can't until they confirm.
+        else if (data.session) setMsg('Account created — signing you in…');
+        else setMsg('Account created. Check your email for the confirmation link, then sign in here.');
+      }
     } catch (e) {
       setMsg((e as Error).message);
     }

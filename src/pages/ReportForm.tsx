@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../lib/supabase';
 import { getCurrentLocation, toPointWKT } from '../lib/geo';
 import { pickPhotoNative, uploadAlertPhoto } from '../lib/photo';
+import { BirdLoader } from '../components/Loader';
 import type { AlertType } from '../types';
 
 export default function ReportForm() {
@@ -19,6 +20,26 @@ export default function ReportForm() {
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Submit progress: the % eases toward the current stage's target, so it
+  // moves visibly during long steps and pauses exactly where a hang would be.
+  const [progress, setProgress] = useState(0);
+  const [stage, setStage] = useState('');
+  const targetRef = useRef(0);
+  useEffect(() => {
+    if (!submitting) return;
+    const iv = setInterval(() => {
+      setProgress((p) => {
+        const d = targetRef.current - p;
+        return d <= 0 ? p : p + Math.max(0.4, d * 0.08);
+      });
+    }, 50);
+    return () => clearInterval(iv);
+  }, [submitting]);
+  const advance = (target: number, label: string) => {
+    targetRef.current = target;
+    setStage(label);
+  };
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((s) => ({ ...s, [k]: e.target.value }));
@@ -57,7 +78,9 @@ export default function ReportForm() {
   async function submit() {
     setSubmitting(true);
     setError('');
+    setProgress(0);
     try {
+      advance(10, 'Checking your session…');
       // getSession() (local, no network) — getUser() can return null in the
       // WKWebView and bounce a signed-in user to /account when filing a report.
       const { data: auth } = await supabase.auth.getSession();
@@ -66,6 +89,7 @@ export default function ReportForm() {
 
       let photoUrl: string | null = null;
       if (photo) {
+        advance(55, 'Uploading photo…');
         try {
           photoUrl = await uploadAlertPhoto(photo, user.id);
         } catch (e) {
@@ -74,9 +98,11 @@ export default function ReportForm() {
         }
       }
 
+      advance(70, 'Pinning your location…');
       // Best-effort GPS — geo.ts caps the fix wait so this can't hang the form.
       const loc = await getCurrentLocation();
 
+      advance(85, 'Publishing alert…');
       // Reports publish immediately; moderators take down false ones after the fact.
       const { data: row, error: insErr } = await supabase.from('alerts').insert({
         type,
@@ -95,8 +121,9 @@ export default function ReportForm() {
         return;
       }
 
-      // Optional reporter contact details — PII side table (reporter + staff only).
-      if (form.phone.trim() || form.nin.trim()) {
+      advance(95, 'Notifying people nearby…');
+      // Missing person's private phone/NIN — PII side table (reporter + staff only).
+      if (type === 'missing_person' && (form.phone.trim() || form.nin.trim())) {
         await supabase.from('alert_reporter_details').insert({
           alert_id: row.id,
           phone: form.phone.trim() || null,
@@ -107,6 +134,9 @@ export default function ReportForm() {
       // Radius push to nearby devices — fire and forget; the alert is already live.
       supabase.functions.invoke('broadcast-alert', { body: { alert_id: row.id } }).catch(() => {});
 
+      advance(100, 'Live — your alert is out.');
+      setProgress(100);
+      await new Promise((r) => setTimeout(r, 450)); // let 100% land
       clearPhoto();
       nav(`/alert/${row.id}`);
     } finally {
@@ -116,6 +146,23 @@ export default function ReportForm() {
 
   return (
     <div className="page">
+      <AnimatePresence>
+        {submitting && (
+          <motion.div
+            key="submit-overlay"
+            className="submit-overlay"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            role="alert"
+            aria-live="assertive"
+          >
+            <BirdLoader size={110} />
+            <div className="submit-overlay__pct mono">{Math.min(100, Math.round(progress))}%</div>
+            <div className="submit-overlay__stage">{stage}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <h1 className="page__title">File a Report</h1>
       <p className="page__sub">Goes live to the community instantly</p>
 
@@ -183,6 +230,20 @@ export default function ReportForm() {
             <label className="field__label" htmlFor="rf-age">Age</label>
             <input id="rf-age" value={form.person_age} onChange={set('person_age')} inputMode="numeric" placeholder="e.g. 14" />
           </div>
+          <div className="field">
+            <label className="field__label" htmlFor="rf-phone">Person's phone number (optional)</label>
+            <input id="rf-phone" value={form.phone} onChange={set('phone')} type="tel" inputMode="tel"
+              placeholder="+234 803 000 0000" />
+          </div>
+          <div className="field">
+            <label className="field__label" htmlFor="rf-nin">Person's NIN (optional)</label>
+            <input id="rf-nin" value={form.nin} onChange={set('nin')} inputMode="numeric"
+              placeholder="11-digit National Identification Number" />
+            <p style={{ fontSize: 12.5, color: 'var(--text-mute)', marginTop: 6 }}>
+              If known — only visible to Sparrowtell responders, never shown publicly.
+              Helps responders trace and identify the person.
+            </p>
+          </div>
         </>
       )}
 
@@ -195,22 +256,6 @@ export default function ReportForm() {
         <label className="field__label" htmlFor="rf-details">Details</label>
         <textarea id="rf-details" value={form.description} onChange={set('description')} rows={4}
           placeholder="Clothing, distinguishing features, what happened…" />
-      </div>
-
-      <div className="field">
-        <label className="field__label" htmlFor="rf-phone">Your phone number (optional)</label>
-        <input id="rf-phone" value={form.phone} onChange={set('phone')} type="tel" inputMode="tel"
-          placeholder="+234 803 000 0000" />
-      </div>
-
-      <div className="field">
-        <label className="field__label" htmlFor="rf-nin">Your NIN (optional)</label>
-        <input id="rf-nin" value={form.nin} onChange={set('nin')} inputMode="numeric"
-          placeholder="11-digit National Identification Number" />
-        <p style={{ fontSize: 12.5, color: 'var(--text-mute)', marginTop: 6 }}>
-          Phone and NIN are only visible to Sparrowtell responders — never shown publicly.
-          They help responders reach and verify you faster.
-        </p>
       </div>
 
       {error && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{error}</p>}
