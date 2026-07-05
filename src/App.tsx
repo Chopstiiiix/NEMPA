@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { armSos } from './lib/sos';
+import { initGlobalHaptics } from './lib/haptics';
 import Nav from './components/Nav';
 import SosOverlay from './components/SosOverlay';
 import Feed from './pages/Feed';
@@ -14,28 +16,28 @@ import logo from './assets/sparrow-logo.png';
 function AnimatedRoutes() {
   const location = useLocation();
   useSwipeBack();
+  // Enter-only animation: no AnimatePresence exit-wait, so switching tabs
+  // mounts the next page immediately instead of stalling on the old one.
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.17, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <Routes location={location}>
-          <Route path="/" element={<Feed />} />
-          <Route path="/report" element={<ReportForm />} />
-          <Route path="/alert/:id" element={<AlertDetail />} />
-          <Route path="/moderate" element={<Moderation />} />
-          <Route path="/account" element={<Auth />} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={location.pathname}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <Routes location={location}>
+        <Route path="/" element={<Feed />} />
+        <Route path="/report" element={<ReportForm />} />
+        <Route path="/alert/:id" element={<AlertDetail />} />
+        <Route path="/moderate" element={<Moderation />} />
+        <Route path="/account" element={<Auth />} />
+      </Routes>
+    </motion.div>
   );
 }
 
 export default function App() {
+  useEffect(() => { initGlobalHaptics(); }, []);
   return (
     <HashRouter>
       <div className="app">

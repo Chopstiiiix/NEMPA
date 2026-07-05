@@ -5,21 +5,33 @@ import AlertCard from '../components/AlertCard';
 import { PageLoader } from '../components/Loader';
 import type { Alert, AlertType } from '../types';
 
+// Module-level cache: coming back to this tab paints the last result
+// instantly and refreshes in the background — no loader flash, no
+// "hang" while the query round-trips.
+const feedCache = new Map<string, Alert[]>();
+
 export default function Feed() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filter, setFilter] = useState<AlertType | 'all'>('all');
-  const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<Alert[]>(feedCache.get('all') ?? []);
+  const [loading, setLoading] = useState(!feedCache.has('all'));
 
   useEffect(() => {
+    const cached = feedCache.get(filter);
+    if (cached) { setAlerts(cached); setLoading(false); }
+    else setLoading(true);
+    let active = true;
     (async () => {
       let q = supabase.from('alerts').select('*')
         .in('status', ['verified', 'resolved'])
         .order('created_at', { ascending: false });
       if (filter !== 'all') q = q.eq('type', filter);
       const { data } = await q;
+      if (!active) return;
+      feedCache.set(filter, data ?? []);
       setAlerts(data ?? []);
       setLoading(false);
     })();
+    return () => { active = false; };
   }, [filter]);
 
   return (

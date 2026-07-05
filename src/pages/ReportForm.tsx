@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../lib/supabase';
 import { getCurrentLocation, toPointWKT } from '../lib/geo';
@@ -9,8 +10,12 @@ import type { AlertType } from '../types';
 export default function ReportForm() {
   const nav = useNavigate();
   const [type, setType] = useState<AlertType>('missing_person');
-  const [form, setForm] = useState({ title: '', description: '', person_name: '', person_age: '', address: '' });
+  const [form, setForm] = useState({
+    title: '', description: '', person_name: '', person_age: '', address: '',
+    phone: '', nin: '',
+  });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,61 +56,96 @@ export default function ReportForm() {
 
   async function submit() {
     setSubmitting(true);
-    // getSession() (local, no network) — getUser() can return null in the
-    // WKWebView and bounce a signed-in user to /account when filing a report.
-    const { data: auth } = await supabase.auth.getSession();
-    const user = auth.session?.user ?? null;
-    if (!user) { setSubmitting(false); nav('/account'); return; }
+    setError('');
+    try {
+      // getSession() (local, no network) — getUser() can return null in the
+      // WKWebView and bounce a signed-in user to /account when filing a report.
+      const { data: auth } = await supabase.auth.getSession();
+      const user = auth.session?.user ?? null;
+      if (!user) { nav('/account'); return; }
 
-    let photoUrl: string | null = null;
-    if (photo) {
-      try {
-        photoUrl = await uploadAlertPhoto(photo, user.id);
-      } catch (e) {
-        setSubmitting(false);
-        return alert(`Photo upload failed: ${(e as Error).message}`);
+      let photoUrl: string | null = null;
+      if (photo) {
+        try {
+          photoUrl = await uploadAlertPhoto(photo, user.id);
+        } catch (e) {
+          setError(`Photo upload failed: ${(e as Error).message}`);
+          return;
+        }
       }
-    }
 
-    const loc = await getCurrentLocation();
-    const { error } = await supabase.from('alerts').insert({
-      type,
-      status: 'pending',
-      title: form.title,
-      description: form.description || null,
-      photo_url: photoUrl,
-      person_name: type === 'missing_person' ? form.person_name || null : null,
-      person_age: form.person_age ? Number(form.person_age) : null,
-      last_seen_address: form.address || null,
-      last_seen_location: loc ? toPointWKT(loc) : null,
-      reporter_id: user.id,
-    });
-    setSubmitting(false);
-    if (error) return alert(error.message);
-    clearPhoto();
-    nav('/');
+      // Best-effort GPS — geo.ts caps the fix wait so this can't hang the form.
+      const loc = await getCurrentLocation();
+
+      // Reports publish immediately; moderators take down false ones after the fact.
+      const { data: row, error: insErr } = await supabase.from('alerts').insert({
+        type,
+        status: 'verified',
+        title: form.title,
+        description: form.description || null,
+        photo_url: photoUrl,
+        person_name: type === 'missing_person' ? form.person_name || null : null,
+        person_age: form.person_age ? Number(form.person_age) : null,
+        last_seen_address: form.address || null,
+        last_seen_location: loc ? toPointWKT(loc) : null,
+        reporter_id: user.id,
+      }).select('id').single();
+      if (insErr || !row) {
+        setError(insErr?.message ?? 'Could not file the report — try again.');
+        return;
+      }
+
+      // Optional reporter contact details — PII side table (reporter + staff only).
+      if (form.phone.trim() || form.nin.trim()) {
+        await supabase.from('alert_reporter_details').insert({
+          alert_id: row.id,
+          phone: form.phone.trim() || null,
+          nin: form.nin.trim() || null,
+        });
+      }
+
+      // Radius push to nearby devices — fire and forget; the alert is already live.
+      supabase.functions.invoke('broadcast-alert', { body: { alert_id: row.id } }).catch(() => {});
+
+      clearPhoto();
+      nav(`/alert/${row.id}`);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="page">
       <h1 className="page__title">File a Report</h1>
-      <p className="page__sub">Reviewed by a moderator before broadcast</p>
+      <p className="page__sub">Goes live to the community instantly</p>
 
-      <div className="segment">
-        {(['missing_person', 'robbery'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setType(t)}
-            className={`segment__item${
-              type === t
-                ? ` segment__item--on ${t === 'missing_person' ? 'is-missing' : 'is-robbery'}`
-                : ''
-            }`}
-          >
-            {t === 'missing_person' ? 'Missing Person' : 'Robbery'}
-          </button>
-        ))}
+      <div className="segment" role="tablist" aria-label="Report type">
+        {(['missing_person', 'robbery'] as const).map((t) => {
+          const on = type === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => setType(t)}
+              className={`segment__item${
+                on ? ` segment__item--on ${t === 'missing_person' ? 'is-missing' : 'is-robbery'}` : ''
+              }`}
+            >
+              {on && (
+                <motion.span
+                  layoutId="reportTypePill"
+                  className="segment__pill"
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                />
+              )}
+              <span className="segment__label">
+                {t === 'missing_person' ? 'Missing Person' : 'Robbery'}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="field">
@@ -157,12 +197,31 @@ export default function ReportForm() {
           placeholder="Clothing, distinguishing features, what happened…" />
       </div>
 
+      <div className="field">
+        <label className="field__label" htmlFor="rf-phone">Your phone number (optional)</label>
+        <input id="rf-phone" value={form.phone} onChange={set('phone')} type="tel" inputMode="tel"
+          placeholder="+234 803 000 0000" />
+      </div>
+
+      <div className="field">
+        <label className="field__label" htmlFor="rf-nin">Your NIN (optional)</label>
+        <input id="rf-nin" value={form.nin} onChange={set('nin')} inputMode="numeric"
+          placeholder="11-digit National Identification Number" />
+        <p style={{ fontSize: 12.5, color: 'var(--text-mute)', marginTop: 6 }}>
+          Phone and NIN are only visible to Sparrowtell responders — never shown publicly.
+          They help responders reach and verify you faster.
+        </p>
+      </div>
+
+      {error && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{error}</p>}
+
       <p className="mono" style={{ color: 'var(--text-mute)', margin: 'var(--s5) 0', textTransform: 'none', letterSpacing: 'normal' }}>
-        Reports are reviewed by a moderator before being broadcast. False reports may be removed.
+        Your report is broadcast to the community immediately. False reports are
+        taken down by moderators and may lead to a ban.
       </p>
 
       <button className="btn btn-primary btn--block btn--lg" disabled={!form.title || submitting} onClick={submit}>
-        {submitting ? 'Submitting…' : 'Submit for review'}
+        {submitting ? 'Sending…' : 'Send alert now'}
       </button>
     </div>
   );
