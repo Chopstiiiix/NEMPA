@@ -15,6 +15,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VolumeButtonsPlugin.class);
+        registerPlugin(SosLaunchPlugin.class);
         super.onCreate(savedInstanceState);
     }
 

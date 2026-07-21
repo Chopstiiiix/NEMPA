@@ -3,6 +3,7 @@ import {
   checkPerms, requestLocation, requestMicrophone, requestNotifications,
   type EmergencyPerms, type PermState,
 } from '../lib/permissions';
+import { backgroundTriggerState, setBackgroundTriggers } from '../lib/sosLaunch';
 
 /**
  * Explains each emergency permission, then asks for it.
@@ -52,9 +53,20 @@ const LABEL: Record<PermState, string> = {
 export default function EmergencySetup({ compact = false }: { compact?: boolean }) {
   const [perms, setPerms] = useState<EmergencyPerms | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [bg, setBg] = useState({ enabled: false, supported: false });
 
-  const refresh = useCallback(async () => { setPerms(await checkPerms()); }, []);
+  const refresh = useCallback(async () => {
+    setPerms(await checkPerms());
+    setBg(await backgroundTriggerState());
+  }, []);
   useEffect(() => { void refresh(); }, [refresh]);
+
+  const toggleBg = async () => {
+    setBusy('bg');
+    const next = await setBackgroundTriggers(!bg.enabled);
+    setBg((b) => ({ ...b, enabled: next }));
+    setBusy(null);
+  };
 
   const ask = async (row: Row) => {
     setBusy(row.key);
@@ -77,7 +89,11 @@ export default function EmergencySetup({ compact = false }: { compact?: boolean 
   const blocked = ROWS.filter((r) => perms[r.key] === 'denied');
 
   // Nothing to do and nothing broken — stay out of the way on the Account page.
-  if (compact && outstanding.length === 0 && blocked.length === 0) return null;
+  // The background-trigger toggle counts as something to do: without it in the
+  // condition, granting every permission would hide the card and leave an
+  // Android user no way to ever turn background triggers on.
+  const bgOffer = bg.supported && !bg.enabled;
+  if (compact && outstanding.length === 0 && blocked.length === 0 && !bgOffer) return null;
 
   return (
     <div className="card" style={{ padding: 'var(--s5)', marginTop: 'var(--s5)' }}>
@@ -124,6 +140,26 @@ export default function EmergencySetup({ compact = false }: { compact?: boolean 
         >
           Allow all
         </button>
+      )}
+
+      {bg.supported && (
+        <div className="perm-row">
+          <div className="perm-row__text">
+            <p className="perm-row__title">Triggers while the app is closed</p>
+            <p className="perm-row__why">
+              Volume down ×5 keeps working with the screen off. Android requires a
+              permanent “Sparrowtell is running” notification for this, which is
+              visible to anyone who looks at your phone.
+            </p>
+          </div>
+          <button
+            className={`btn ${bg.enabled ? 'btn--ghost' : 'btn-primary'} perm-row__btn`}
+            onClick={() => void toggleBg()}
+            disabled={busy !== null}
+          >
+            {busy === 'bg' ? '…' : bg.enabled ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
       )}
 
       {blocked.length > 0 && (

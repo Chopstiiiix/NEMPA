@@ -243,6 +243,8 @@ so a slow encoder can't leave two recorders running against one stream.
 | Volume-down ×5 / volume-up ×5 | **open and on screen only** | `volumeTriggers.ts` + native plugins |
 | Home-screen quick action (long-press icon) | closed | `Info.plist` `UIApplicationShortcutItems` + `AppDelegate` |
 | Siri phrase / Back Tap / Action Button | closed | `SosIntents.swift` |
+| Android Quick Settings tile | closed | `SosTileService.java` |
+| Android volume ×5 with screen off | closed, **opt-in** | `SosForegroundService.java` |
 
 The volume triggers stop the moment the app backgrounds — the iOS listener is a KVO
 observation on `AVAudioSession.outputVolume` bound to the bridge's view controller
@@ -270,6 +272,32 @@ table.
 
 Verified by inspecting the built `.app`: `Metadata.appintents/extract.actionsdata` contains
 both intents and all eight Siri phrases, and the quick actions are in the built `Info.plist`.
+
+**Android background triggers — OPT-IN, off by default.** Turned on from `EmergencySetup`.
+Android requires a permanent notification for a foreground service, and a visible
+"Sparrowtell is running" on the phone of someone at risk is itself a hazard — which is the
+whole reason the danger flow is silent. Default-on would have been the wrong call.
+
+- ⚠️ **A service cannot intercept hardware keys**, and `dispatchKeyEvent` in MainActivity only
+  fires while that activity is foreground. `SosForegroundService` instead registers a
+  `ContentObserver` on `Settings.System.CONTENT_URI` and watches the volume level change —
+  which is what a hardware press does, and it fires with the screen off.
+- ⚠️ **The re-centre matters.** At minimum or maximum volume a further press changes nothing,
+  so no observer callback arrives and the gesture dies exactly when someone is jabbing the
+  button in a panic. The service nudges volume back to mid-range after a press at either
+  extreme — the same trick `VolumeButtonsPlugin.swift` uses with `MPVolumeView`.
+- ⚠️ **Android 10+ blocks background activity launches** and a plain foreground service gets
+  no exemption. `trigger()` attempts `startActivity` (it works on many devices/states) *and*
+  posts a high-priority notification as a fallback, so a blocked launch degrades to one tap
+  rather than an SOS that silently does nothing. A guaranteed launch would need
+  `SYSTEM_ALERT_WINDOW`, which is a Settings round-trip — worth revisiting.
+- `foregroundServiceType="specialUse"` with the Play-Console-required justification property;
+  the work is observing a system setting, not location or media.
+- The Quick Settings tile has no such problem — a tile tap is a user interaction, so
+  `startActivityAndCollapse` is permitted.
+
+Verified with `./gradlew :app:assembleDebug`: BUILD SUCCESSFUL, both services present in the
+merged manifest with the right `foregroundServiceType` and permissions.
 
 ### iOS native (generated 2026-06-01)
 

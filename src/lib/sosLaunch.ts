@@ -17,6 +17,8 @@ import type { SosKind } from '../types';
 
 interface SosLaunchPlugin {
   consumePending(): Promise<{ kind: string }>;
+  setBackgroundTriggers(opts: { enabled: boolean }): Promise<{ enabled: boolean }>;
+  isBackgroundEnabled(): Promise<{ enabled: boolean; supported: boolean }>;
   addListener(
     eventName: 'sosLaunch',
     handler: () => void,
@@ -24,6 +26,28 @@ interface SosLaunchPlugin {
 }
 
 const SosLaunch = registerPlugin<SosLaunchPlugin>('SosLaunch');
+
+/**
+ * Android only: keep the volume-button gestures alive with the app closed.
+ *
+ * iOS has no equivalent and cannot have one — a third-party app may not
+ * observe hardware buttons while it isn't running. There the Siri phrase, Back
+ * Tap, Action Button and quick action fill that gap instead. `supported` is
+ * false on iOS so the UI can leave the toggle out rather than offering
+ * something that will never work.
+ */
+export async function backgroundTriggerState(): Promise<{ enabled: boolean; supported: boolean }> {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
+    return { enabled: false, supported: false };
+  }
+  try { return await SosLaunch.isBackgroundEnabled(); }
+  catch { return { enabled: false, supported: false }; }
+}
+
+export async function setBackgroundTriggers(enabled: boolean): Promise<boolean> {
+  try { return (await SosLaunch.setBackgroundTriggers({ enabled })).enabled; }
+  catch { return false; }
+}
 
 export function initSosLaunch(onTrigger: (kind: SosKind) => void) {
   if (!Capacitor.isNativePlatform()) return;

@@ -20,6 +20,35 @@
             </intent-filter>
         </activity>
 
+        <!-- Keeps the volume-button gestures alive with the app closed / screen
+             off. OPT-IN, started only from EmergencySetup: Android requires a
+             permanent notification for a foreground service, and a visible
+             "Sparrowtell is running" on the phone of someone at risk is itself
+             a hazard — which is exactly why the danger flow is silent.
+             specialUse because the work is observing a system setting, not
+             location or media; Play Console requires the justification below. -->
+        <service
+            android:name=".SosForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Detects the hardware volume-button panic gesture while the screen is off so a personal-safety alert can be raised without unlocking the phone." />
+        </service>
+
+        <!-- Quick Settings tile: one swipe and a tap from the lock screen. -->
+        <service
+            android:name=".SosTileService"
+            android:exported="true"
+            android:icon="@android:drawable/ic_lock_idle_alarm"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -41,4 +70,7 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Opt-in background trigger service (see SosForegroundService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 </manifest>
