@@ -216,14 +216,32 @@ Push now uses **`@capacitor-firebase/messaging`** (not `@capacitor/push-notifica
 **Done as of 2026-07-21** (verified in the project, not assumed):
 - ✅ `GoogleService-Info.plist` present at `ios/App/App/`, `BUNDLE_ID` matches `ng.nempa.app`, referenced by the App target.
 - ✅ Signing: `DEVELOPMENT_TEAM = 5K46PLQ658`, automatic. `App.entitlements` has `aps-environment`.
-- ✅ `Info.plist`: `UIBackgroundModes` = remote-notification / audio / location, all usage strings, and `ITSAppUsesNonExemptEncryption = false` (HTTPS only — skips the export-compliance prompt on every upload).
-- Version/build: `MARKETING_VERSION 1.0` / `CURRENT_PROJECT_VERSION 1`. **Every App Store Connect upload needs a unique, higher build number.**
+- ✅ `Info.plist`: `UIBackgroundModes` = remote-notification / audio, all usage strings, and `ITSAppUsesNonExemptEncryption = false` (HTTPS only — skips the export-compliance prompt on every upload).
+- ✅ `PrivacyInfo.xcprivacy` at `ios/App/App/`, **registered in the App target's Resources build phase** (hand-added to `project.pbxproj`; a manifest that isn't in the target ships as a dead file). Declares location / email / name / phone / address / photos / audio / user content, all `Linked`, none `Tracking`, purpose AppFunctionality; plus required-reason APIs UserDefaults `CA92.1`, FileTimestamp `C617.1`, DiskSpace `E174.1`. **Keep it in step with the App Store Connect privacy questionnaire — Apple compares the two and a mismatch is a rejection.**
+- Version/build: `MARKETING_VERSION 1.0` / `CURRENT_PROJECT_VERSION 2`. **Every App Store Connect upload needs a unique, higher build number.**
 
-**Still outstanding:**
+**Still outstanding (only you can do these):**
 1. **APNs Auth Key (.p8)** → Apple Developer → Keys → upload to Firebase → Project settings → Cloud Messaging → Apple app config (with Key ID + Team ID `5K46PLQ658`). Downloads once only. **Until this is done, a TestFlight build installs fine and receives no push** — TestFlight uses the production APNs environment.
 2. Run on a **real device** (`npm run ios`; the simulator cannot get an APNs/FCM token).
+3. App Store Connect: privacy questionnaire, and a **privacy policy URL** (required for any app that collects data — host it alongside the auth landing page on `sparrowtell.inspire-edge.net`).
 
-> ⚠️ `UIBackgroundModes` declares `location` and `sos.ts` runs `Geolocation.watchPosition` for the live SOS trail, but the only location usage string is `NSLocationWhenInUseUsageDescription`. Capacitor's Geolocation plugin only ever requests When-In-Use on iOS, so the trail stops when the app is backgrounded — and App Review rejects apps that declare the `location` background mode without a feature that justifies persistent location. Either drop `location` from `UIBackgroundModes`, or move to a plugin that requests Always authorisation and add `NSLocationAlwaysAndWhenInUseUsageDescription`.
+> ⚠️ **`location` was REMOVED from `UIBackgroundModes` (2026-07-21).** It had been declared while
+> the only location string was `NSLocationWhenInUseUsageDescription`, and Capacitor's Geolocation
+> plugin only ever requests When-In-Use — so the background mode did nothing, the SOS trail
+> stopped on backgrounding anyway, and App Review rejects a `location` background mode with no
+> feature that justifies persistent location. **If background SOS tracking is built, this must
+> come back properly**: a plugin that requests Always authorisation *plus*
+> `NSLocationAlwaysAndWhenInUseUsageDescription`. Re-adding the mode alone would restore the
+> rejection risk without restoring the capability.
+
+> ⚠️ **In-app account deletion is mandatory** (App Store Review Guideline 5.1.1(v)) for any app
+> with account creation — a "contact us" link does not satisfy it. Built 2026-07-21:
+> `src/components/DeleteAccount.tsx` (type DELETE to confirm) → `delete-account` Edge Function.
+> Identity comes from the JWT only, with no `user_id` parameter, so a caller cannot delete
+> anyone else. FKs cascade profiles / devices / emergency_contacts / sos_events; `alerts.reporter_id`
+> and `alert_audit.actor_id` are ON DELETE SET NULL by design — a broadcast alert must not vanish
+> from the public feed because its reporter left, and the audit trail must not lose rows. Storage
+> has no FK, so the function clears `alert-photos/<uid>/` and `sos-evidence/<uid>/` itself.
 
 Server side (FCM secrets) is already done, so once a device registers its token, broadcasts deliver.
 

@@ -43,3 +43,7 @@ GoogleService-Info.plist
 
 # Supabase CLI local temp (project-ref, cli version cache)
 supabase/.temp/
+
+# spin scratch
+.spin/
+SPIN_PROFILE.md

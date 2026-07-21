@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { registerPush } from '../lib/push';
 import EmergencyContacts from '../components/EmergencyContacts';
 import ProfileCard from '../components/ProfileCard';
+import DeleteAccount from '../components/DeleteAccount';
 import type { User } from '@supabase/supabase-js';
 
 // Only the address is remembered, never the password. The session itself always
@@ -112,6 +113,7 @@ export default function Auth() {
         </div>
         <ProfileCard userId={user.id} />
         <EmergencyContacts userId={user.id} />
+        <DeleteAccount email={user.email ?? ''} />
       </div>
     );
   }

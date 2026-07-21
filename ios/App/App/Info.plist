@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Sparrowtell</string>
+	<string>Sparrowtell</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,10 +18,38 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>ng.nempa.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ng.nempa.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Sparrowtell uses your camera to attach a photo to a missing-person or incident report.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Sparrowtell uses your location to tag where an incident occurred and to alert you to nearby emergencies.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>During a danger alert, Sparrowtell records background audio as evidence for responders. Recording only happens while an alert you triggered is active.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Sparrowtell may save report photos to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Sparrowtell lets you choose a photo from your library to attach to a report.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>audio</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,39 +73,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>audio</string>
-		<string>location</string>
-	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>Sparrowtell uses your camera to attach a photo to a missing-person or incident report.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Sparrowtell lets you choose a photo from your library to attach to a report.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Sparrowtell may save report photos to your library.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Sparrowtell uses your location to tag where an incident occurred and to alert you to nearby emergencies.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>During a danger alert, Sparrowtell records background audio as evidence for responders. Recording only happens while an alert you triggered is active.</string>
-	<!-- Sparrowtell uses only standard HTTPS (Supabase, FCM), which is exempt under
-	     the US export regulations, so App Store Connect stops asking on every upload.
-	     Revisit this if the app ever adds its own cryptography. -->
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<!-- Lets the email-confirmation landing page reopen the app via ng.nempa.app://
-	     Without this the "Open Sparrowtell" button on that page silently does nothing. -->
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>ng.nempa.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>ng.nempa.app</string>
-			</array>
-		</dict>
-	</array>
 </dict>
 </plist>
