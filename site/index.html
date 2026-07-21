@@ -87,12 +87,20 @@
   </main>
 
 <script>
-  // Supabase reports failures in the URL fragment (#error=...&error_description=...).
-  // Read it, show the failure honestly, then strip the fragment so tokens don't
-  // linger in the address bar or get copied into a screenshot.
+  // Supabase reports failures two different ways depending on the flow: the
+  // implicit flow puts them in the fragment (#error=...&error_description=...),
+  // PKCE puts them in the query string (?error=...). Check BOTH — reading only the
+  // fragment means a real PKCE failure renders the green "Email confirmed" card and
+  // tells the user everything worked when it didn't.
   (function () {
-    var frag = new URLSearchParams(location.hash.replace(/^#/, ''));
-    var err = frag.get('error_description') || frag.get('error');
+    var sources = [
+      new URLSearchParams(location.hash.replace(/^#/, '')),
+      new URLSearchParams(location.search),
+    ];
+    var err = null;
+    for (var i = 0; i < sources.length && !err; i++) {
+      err = sources[i].get('error_description') || sources[i].get('error');
+    }
     if (err) {
       document.getElementById('ok').style.display = 'none';
       document.getElementById('err').style.display = 'block';
