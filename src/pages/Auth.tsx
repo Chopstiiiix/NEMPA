@@ -4,6 +4,7 @@ import { registerPush } from '../lib/push';
 import EmergencyContacts from '../components/EmergencyContacts';
 import ProfileCard from '../components/ProfileCard';
 import DeleteAccount from '../components/DeleteAccount';
+import EmergencySetup from '../components/EmergencySetup';
 import type { User } from '@supabase/supabase-js';
 
 // Only the address is remembered, never the password. The session itself always
@@ -111,6 +112,10 @@ export default function Auth() {
             Sign out
           </button>
         </div>
+        {/* Sits directly under the session card so it is the first thing a
+            newly signed-up user sees, and hides itself once everything is
+            granted. */}
+        <EmergencySetup compact />
         <ProfileCard userId={user.id} />
         <EmergencyContacts userId={user.id} />
         <DeleteAccount email={user.email ?? ''} />

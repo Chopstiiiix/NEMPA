@@ -35,7 +35,10 @@
     <!-- SOS live-location trail (@capacitor/geolocation) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Danger-alert background audio evidence (WebView getUserMedia) -->
+    <!-- SOS + danger-alert audio evidence (WebView getUserMedia). POST_NOTIFICATIONS
+         is not declared here on purpose: @capacitor-firebase/messaging merges it in
+         from its own library manifest. -->
+
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>

@@ -40,7 +40,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Sparrowtell uses your location to tag where an incident occurred and to alert you to nearby emergencies.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>During a danger alert, Sparrowtell records background audio as evidence for responders. Recording only happens while an alert you triggered is active.</string>
+	<string>During an SOS or danger alert that you trigger, Sparrowtell records audio so responders can hear what is happening. Recording only ever runs while an alert you started is active, and stops when you end it.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Sparrowtell may save report photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

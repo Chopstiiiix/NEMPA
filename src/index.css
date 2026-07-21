@@ -637,6 +637,17 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 .review-row__actions { display: flex; gap: 8px; }
 .review-row__actions .btn { flex: 1; }
 
+/* ---- Emergency permission rows ---- */
+.perm-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-top: 1px solid var(--hairline);
+}
+.perm-row:first-of-type { border-top: none; }
+.perm-row__text { flex: 1; min-width: 0; }
+.perm-row__title { font-weight: 600; font-size: 14.5px; margin: 0 0 2px; }
+.perm-row__why { font-size: 12.5px; color: var(--text-mute); margin: 0; line-height: 1.4; }
+.perm-row__btn { flex: 0 0 auto; padding: 6px 14px; }
+
 /* ---- Confirmation sheet ----
    The last thing between a tap and every phone in a 25km radius. Deliberately
    not dismissible by anything other than Cancel or the scrim. */

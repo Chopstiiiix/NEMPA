@@ -126,13 +126,18 @@ async function fire() {
 
   startLocationTrail(row.id, point);
 
-  if (state.kind === 'danger') {
-    const ok = await recorder.start();
-    set({ recordingOn: ok });
-    if (ok) {
-      uploadTimer = setInterval(() => void uploadEvidence(user.id, row.id), 20_000);
-    }
-  } else {
+  // Audio runs for BOTH kinds now (2026-07-21). It used to be danger-only,
+  // which meant a panic SOS — the flow people actually reach for — sent
+  // responders a location and nothing they could hear. The permission is
+  // primed during onboarding (EmergencySetup), so this no longer puts a
+  // microphone dialog in front of someone mid-emergency.
+  const ok = await recorder.start();
+  set({ recordingOn: ok });
+  if (ok) {
+    uploadTimer = setInterval(() => void uploadEvidence(user.id, row.id), 20_000);
+  }
+
+  if (state.kind !== 'danger') {
     // Panic SOS: hand the user a pre-filled SMS to their emergency contacts.
     void openContactsSms(point);
   }
