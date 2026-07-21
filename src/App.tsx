@@ -63,6 +63,15 @@ export default function App() {
         <header className="app-bar">
           <img src={logo} className="app-bar__logo" alt="Sparrowtell" />
           <span className="app-bar__tag">Community Alert Network</span>
+          {/* Stays in the sticky bar so it is reachable from every screen and
+              never scrolls away — the reason a hero placement was rejected. */}
+          <button
+            className="sos-chip"
+            onClick={() => void armSos('sos')}
+            aria-label="Send SOS — five second countdown before anything is sent"
+          >
+            SOS
+          </button>
         </header>
         <AnimatedRoutes />
         <Nav />
