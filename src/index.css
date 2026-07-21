@@ -617,6 +617,54 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 }
 .sos-card--danger { border-left-color: var(--ink-2); }
 
+/* ============================================================
+   Review queue (staff only)
+   ============================================================ */
+.review-row { padding: 14px; margin-bottom: 12px; border-left: 4px solid var(--missing); }
+/* Already out there — visually distinct from something still awaiting a call. */
+.review-row--live { border-left-color: var(--live); }
+.review-row__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.review-row__age { margin-left: auto; font-size: 12px; color: var(--text-mute); }
+.review-row__title {
+  font-family: var(--font-display); font-size: 17px; line-height: 1.25; margin: 0 0 4px;
+}
+.review-row__who { font-size: 14px; color: var(--text-dim); margin: 0 0 6px; }
+.review-row__desc {
+  font-size: 14px; color: var(--text-dim); margin: 0 0 8px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.review-row__where { font-size: 12px; color: var(--text-mute); margin: 0 0 12px; }
+.review-row__actions { display: flex; gap: 8px; }
+.review-row__actions .btn { flex: 1; }
+
+/* ---- Confirmation sheet ----
+   The last thing between a tap and every phone in a 25km radius. Deliberately
+   not dismissible by anything other than Cancel or the scrim. */
+.sheet-scrim {
+  position: fixed; inset: 0; z-index: 120;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(11, 14, 9, 0.55);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 16px;
+}
+.sheet {
+  width: min(100%, 430px);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 20px;
+  box-shadow: var(--shadow-1);
+  margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+}
+.sheet__title { font-family: var(--font-display); font-size: 20px; margin: 0 0 12px; }
+.sheet__body { font-size: 15px; margin: 0 0 4px; }
+.sheet__meta { font-size: 12px; color: var(--text-mute); margin: 0 0 14px; }
+.sheet__reach {
+  font-size: 13px; padding: 10px 12px; border-radius: var(--r-sm);
+  background: var(--info-weak); color: var(--info); margin: 0 0 12px;
+}
+.sheet__warn { font-size: 13px; color: var(--critical); margin: 0 0 16px; }
+.sheet__actions { display: flex; gap: 8px; }
+.sheet__actions .btn { flex: 1; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

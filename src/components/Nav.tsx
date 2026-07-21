@@ -2,14 +2,19 @@ import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BellIcon, PersonIcon } from './icons';
+import { useRole } from '../lib/useRole';
 
 interface Tab { to: string; label: string; render: (active: boolean) => ReactNode }
 
 const glyph = (g: string) => () => <span className="nav__item-icon">{g}</span>;
 
 /**
- * Sparrowtell is the citizen-side app — there is no moderation surface here at
- * all. Investigating a report and deciding to broadcast it happens in Gecko Intel.
+ * Three tabs for everyone; staff get a fourth.
+ *
+ * Investigation proper still lives in Gecko Intel — reporter contact details,
+ * SOS trails and the map are all there. Review here exists because a missing
+ * person filed at 2am shouldn't wait for an operator to reach a laptop. Both
+ * surfaces call the same `review-action` function, so they cannot diverge.
  */
 const tabs: Tab[] = [
   { to: '/', label: 'Alerts', render: (a) => <BellIcon active={a} /> },
@@ -17,10 +22,18 @@ const tabs: Tab[] = [
   { to: '/account', label: 'Account', render: (a) => <PersonIcon active={a} /> },
 ];
 
+const reviewTab: Tab = { to: '/review', label: 'Review', render: glyph('◈') };
+
 export default function Nav() {
+  const { isStaff } = useRole();
+  // Insert before Account so Account stays the rightmost, habitual tab.
+  const visible = isStaff
+    ? [...tabs.slice(0, 2), reviewTab, tabs[2]]
+    : tabs;
+
   return (
     <nav className="nav">
-      {tabs.map((t) => (
+      {visible.map((t) => (
         <NavLink
           key={t.to}
           to={t.to}

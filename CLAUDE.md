@@ -98,38 +98,97 @@ Moderation is no longer done in this app at all — see the next section. The `p
 column and `is_staff()` still exist and still gate the RLS policies that Gecko will write
 through, so promoting an operator is still `update profiles set role='moderator' where id='<uuid>';`
 
-### No moderation in Sparrowtell — it all happens in Gecko (2026-07-21)
+### Review + broadcast — ONE server path, two front-ends (2026-07-21, revised)
 
-Sparrowtell is the **citizen-side** app and has **no moderation surface at all**. There is
-no Review tab, no `/moderate` route, no `Moderation.tsx`, no `SosQueue`, no `useRole.ts` —
-all deleted. Operator work (investigate, broadcast, resolve, reporter phone+NIN, SOS queue)
-lives in **Gecko Intel** (`~/gecko_intel`).
+> Earlier the same day this section said Sparrowtell had **no** moderation surface and that
+> all operator work lived in Gecko. That was reversed deliberately: a missing-person report
+> filed at 2am shouldn't wait for an operator to reach a laptop. The safety concern behind
+> the original decision is unchanged — it's now handled by making both surfaces call the
+> same audited server path, rather than by having only one surface.
 
-There is no separate "moderation" step: **the investigation you already do in Gecko is the
-review.** A report reaches Gecko the instant it is filed. What still needs a human is the
-outbound blast — one operator click, in Gecko, on the screen where the investigating happens.
-Rationale: anyone who can create an account could otherwise push-notify every phone within
-25km, and a missing-person post broadcasts a real person's face and last-seen location.
-
-The existing `alert_status` enum already models this, so **no schema change**:
+The `alert_status` enum models the lifecycle, so **no enum change**:
 
 | status | meaning |
 |---|---|
-| `pending` | filed — live in Gecko, visible to its own reporter, **not** public |
+| `pending` | filed — in the review queue, visible to its own reporter, **not** public |
 | `verified` | an operator hit Broadcast — public feed + radius push |
-| `resolved` / `rejected` | as before |
+| `resolved` / `rejected` | ended, or taken down |
 
-Sparrow side (done): `ReportForm` inserts without `status` (defaults `pending`) and does
-**not** call `broadcast-alert`. `Feed.tsx` asks for `pending` too — the alerts RLS policy
-(`schema.sql:119`) returns pending rows only to their own reporter, so you see your own
-report with a "With responders" badge and nobody else's. `push.ts` no longer deep-links
-SOS anywhere.
+**`review-action` is the only thing that may change an alert's status.** It authorises the
+caller, transitions the row, writes an `alert_audit` record, and invokes `broadcast-alert`
+for delivery. It does not contain FCM code — delivery has exactly one implementation too.
 
-> ⚠️ Gecko side (**not done** — this is the open loop): `src/app/api/sparrow/route.ts` is
-> read-only and queries `alerts_geo?status=eq.verified`, so filed reports do not appear yet.
-> It needs `status=in.(pending,verified)` plus a write path that sets `status='verified'`
-> and invokes the `broadcast-alert` Edge Function. **Until then nothing can ever be
-> broadcast.** SOS is unaffected — it flows instantly via `sos_events_geo` and is never gated.
+```
+Sparrowtell Review tab ─┐
+   (user JWT, staff)    ├─► review-action ─► broadcast-alert ─► FCM
+Gecko operator UI ──────┘    (authorise,        (deliver)
+   (service key + actor)      transition,
+                              audit)
+```
+
+Actions: `preview` (device count, mutates nothing — powers the confirm sheet) ·
+`broadcast` (pending→verified, atomic claim, then push) · `repush` (retry a failed
+delivery) · `takedown` (→rejected) · `resolve` (→resolved).
+
+Enforcement, in `supabase/review-audit.sql` (applied to the live DB):
+
+- `revoke update on alerts from anon, authenticated` — the `staff moderate alerts` policy
+  proved the caller was staff and nothing more, so any staff client could `PATCH
+  /rest/v1/alerts {"status":"verified"}` and flip a report public with no audit row, no
+  `verified_by` and no push. The policy is left in place; only the grant is gone, so
+  re-enabling direct writes is a deliberate act rather than a forgotten default.
+- `alert_audit` is append-only: staff `SELECT` policy, no INSERT/UPDATE/DELETE policy, and
+  the only writer is the Edge Function using the service key.
+- ⚠️ **Gecko holds the service key, which bypasses RLS and grants — for Gecko this is a
+  discipline, not a fence.** Never `PATCH` a status from Gecko.
+
+Sparrow side (done): staff-only Review tab (`src/pages/Review.tsx`, `src/lib/review.ts`,
+`src/lib/useRole.ts`, 4th nav tab). `useRole` gates tab *visibility* only — it is not a
+security boundary; `review-action` re-reads the role server-side and 403s a non-staff
+caller, and RLS returns an empty queue anyway. The confirm sheet shows the device count
+returned by `preview`, never a client-side estimate, so it can't disagree with what the
+sender actually targets.
+
+> ⚠️ **`review-action` must stay deployed with `verify_jwt` ON.** It identifies a
+> service-role caller by the JWT's `role` claim, which is only trustworthy because the
+> gateway verifies the signature first. Deploying with `--no-verify-jwt` would let anyone
+> forge that claim. (String-comparing the token against `SUPABASE_SERVICE_ROLE_KEY` does
+> *not* work — a project can hold several valid service credentials at once, and Gecko's
+> legacy JWT key is not equal to the newer-format value in the function's env. That bug
+> 401'd every Gecko call until it was fixed.)
+
+> ⚠️ Gecko side (**still not done** — the remaining open loop): `src/app/api/sparrow/route.ts`
+> is read-only and queries `alerts_geo?status=eq.verified`, so filed reports do not appear
+> there yet. It needs `status=in.(pending,verified)` plus a POST that proxies to
+> `review-action`. Full spec in `GECKO_REVIEW_PROMPT.md`. SOS is unaffected — it flows
+> instantly via `sos_events_geo` and is never gated.
+
+**Retraction pushes (`supabase/cancel-push.sql`, applied).** Taking a live alert down sends a
+follow-up push, because removing it from the feed is not enough: someone who saw "MISSING:
+child, Ikeja" and never sees a retraction keeps acting on it.
+
+- `broadcast-alert` gained `mode:'alert'|'cancel'` and `reason:'withdrawn'|'resolved'`. It is
+  still the only place a push is built.
+- It records accepted deliveries in **`alert_recipients`** (`alert_id, device_id` — device id,
+  not the token, so a rotated token is picked up by the join at send time). Cancellation goes
+  to *exactly that set*. Re-running `devices_near` at takedown time would be the easy way and
+  the wrong one: phones move, so it would miss someone who got the alert and drove home, and
+  would alarm someone who arrived later about an alert they never saw.
+- Both the alert and its retraction carry `android.notification.tag` / `apns-collapse-id` =
+  the alert id, so the retraction **replaces** the original in the tray rather than stacking
+  under it.
+- `review-action` fires this on `takedown`/`resolve` **only when the alert was `verified`** — a
+  rejected pending report was never seen, and "disregard the earlier alert" for something
+  nobody received is its own small harm. Logged as a separate `cancel_push` audit row, so a
+  failed retraction is visible rather than silent.
+
+> ⚠️ **`alerts_force_pending` trigger** (BEFORE INSERT, pre-existing, was undocumented):
+> `if not is_staff() then new.status := 'pending'`. `is_staff()` reads `auth.uid()`, which is
+> **null for both anon and the service role** — so a row inserted via the service key or the
+> management API is forced to `pending` no matter what `status` you pass. Good guardrail; it
+> also means you cannot create a `verified` fixture with a plain INSERT. `UPDATE` it after
+> insert instead. This cost a confusing test run where a "verified" fixture came back pending
+> and made correct code look broken.
 
 ### Design system
 
@@ -217,8 +276,8 @@ npx cap add ios            # macOS + Xcode only
 1. ✅ **Wire env + run** — `.env` wired to live project; Feed/dev server boot confirmed.
 2. ✅ **Photo upload** — `src/lib/photo.ts` (native Camera + `uploadAlertPhoto` to `alert-photos`); `ReportForm` has a picker + preview with a web `<input type=file>` fallback, uploads on submit and saves `photo_url`. Storage RLS verified (public read, authenticated insert).
 3. ✅ **Leaflet markers** — fixed in `AlertMap.tsx` (bundled icon URLs + retina/shadow).
-4. ~~**Moderation screen**~~ — built, then **removed** from this app (2026-07-21). Moved to Gecko; see the section above.
-5. ⏳ **Broadcast trigger** — the `broadcast-alert` Edge Function is deployed and working, but nothing calls it any more. Gecko's Broadcast action must invoke it after setting `status='verified'`.
+4. ✅ **Review screen** — removed 2026-07-21, then rebuilt the same day as a staff-only Review tab calling the shared `review-action` function. See the section above.
+5. ⏳ **Broadcast trigger** — `review-action` → `broadcast-alert` is deployed and verified from the Sparrow side. **Gecko still can't reach it**: its `/api/sparrow` route is read-only and filters to `verified`, so reports filed in the app remain invisible there. Spec in `GECKO_REVIEW_PROMPT.md`.
 6. **Tips/sightings** — render + insert `alert_tips` on `AlertDetail`.
 7. **Foreground notifications** — use `@capacitor/local-notifications` to show pushes received while app is open.
 8. **Resolve flow** — mark alerts resolved; auto-expire stale ones.

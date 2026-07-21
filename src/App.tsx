@@ -11,6 +11,7 @@ import Feed from './pages/Feed';
 import ReportForm from './pages/ReportForm';
 import AlertDetail from './pages/AlertDetail';
 import Auth from './pages/Auth';
+import Review from './pages/Review';
 import logo from './assets/sparrow-logo.png';
 
 function AnimatedRoutes() {
@@ -36,6 +37,10 @@ function AnimatedRoutes() {
           <Route path="/report" element={<ReportForm />} />
           <Route path="/alert/:id" element={<AlertDetail />} />
           <Route path="/account" element={<Auth />} />
+          {/* Not route-guarded: the queue is empty for a non-staff caller (RLS
+              won't return other people's pending reports) and every action is
+              re-authorised server-side. A guard here would be theatre. */}
+          <Route path="/review" element={<Review />} />
         </Routes>
       </motion.div>
     </div>
