@@ -66,5 +66,18 @@
 	     Revisit this if the app ever adds its own cryptography. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Lets the email-confirmation landing page reopen the app via ng.nempa.app://
+	     Without this the "Open Sparrowtell" button on that page silently does nothing. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>ng.nempa.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ng.nempa.app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

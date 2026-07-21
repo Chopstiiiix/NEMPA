@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sparrowtell — Email confirmed</title>
+<meta name="robots" content="noindex" />
+<!--
+  Landing page for Supabase auth redirects (Site URL).
+
+  Why this exists: the confirmation link goes to Supabase's /auth/v1/verify
+  endpoint, which confirms the account and THEN redirects here. With Site URL
+  left at the default http://localhost:3000, that last hop died with
+  "This site can't be reached" — the account was confirmed, but every user
+  read it as a failed signup.
+
+  Deploy to https://sparrowtell.inspire-edge.net and set it as Site URL in
+  Supabase → Authentication → URL Configuration.
+
+  Deliberately static and dependency-free: no analytics, no fonts, no network
+  calls. Supabase appends tokens to the URL fragment on some flows, and this
+  page must never transmit them anywhere.
+-->
+<style>
+  :root {
+    --bg: #E9E5D6; --surface: #F4F1E6; --border: #CFC9B2;
+    --text: #1A2014; --dim: #4C5842; --mute: #7D8669;
+    --brand: #294922; --leaf: #C9D8A8; --critical: #B0492F;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10150D; --surface: #1A2014; --border: #2C3826;
+      --text: #E9E5D6; --dim: #B7C0A6; --mute: #8FA376;
+      --brand: #C9D8A8; --leaf: #C9D8A8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .card {
+    width: 100%; max-width: 420px; padding: 32px 28px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; text-align: center;
+  }
+  .mark {
+    width: 56px; height: 56px; margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--brand); color: var(--surface);
+    font-size: 28px; line-height: 1;
+  }
+  h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.01em; }
+  p { margin: 0 0 20px; color: var(--dim); font-size: 15px; }
+  .btn {
+    display: block; padding: 14px 18px; border-radius: 10px;
+    background: var(--brand); color: var(--bg);
+    font-weight: 600; font-size: 16px; text-decoration: none;
+  }
+  @media (prefers-color-scheme: dark) { .btn { color: #10150D; } }
+  .hint {
+    margin: 16px 0 0; font-size: 13px; color: var(--mute);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .err { display: none; }
+  .err .mark { background: var(--critical); color: #fff; }
+</style>
+</head>
+<body>
+  <main class="card" id="ok">
+    <div class="mark">✓</div>
+    <h1>Email confirmed</h1>
+    <p>Your Sparrowtell account is ready. Open the app and sign in with your email and password.</p>
+    <a class="btn" href="ng.nempa.app://">Open Sparrowtell</a>
+    <p class="hint">If that button does nothing, just open Sparrowtell from your home screen.</p>
+  </main>
+
+  <main class="card err" id="err">
+    <div class="mark">!</div>
+    <h1>Link didn't work</h1>
+    <p id="err-msg">This confirmation link has expired or has already been used.</p>
+    <a class="btn" href="ng.nempa.app://">Open Sparrowtell</a>
+    <p class="hint">Sign up again to get a fresh link.</p>
+  </main>
+
+<script>
+  // Supabase reports failures in the URL fragment (#error=...&error_description=...).
+  // Read it, show the failure honestly, then strip the fragment so tokens don't
+  // linger in the address bar or get copied into a screenshot.
+  (function () {
+    var frag = new URLSearchParams(location.hash.replace(/^#/, ''));
+    var err = frag.get('error_description') || frag.get('error');
+    if (err) {
+      document.getElementById('ok').style.display = 'none';
+      document.getElementById('err').style.display = 'block';
+      document.getElementById('err-msg').textContent = decodeURIComponent(err).replace(/\+/g, ' ');
+    }
+    if (location.hash) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  })();
+</script>
+</body>
+</html>
