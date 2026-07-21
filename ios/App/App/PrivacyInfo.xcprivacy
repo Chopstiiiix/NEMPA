@@ -127,6 +127,55 @@
         <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
       </array>
     </dict>
+
+    <!-- Emergency contacts: the name, phone and relation of OTHER people, saved
+         by the user so an SOS can text them. Apple counts third-party contact
+         details as Contacts even when typed in by hand rather than imported
+         from the address book. -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeContacts</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+    <!-- FCM push token in `devices`, so an alert can be delivered to this phone. -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeDeviceID</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+    <!-- National Identification Number, optionally given when filing a report
+         (alert_reporter_details.nin) so responders can verify the reporter. It
+         is never shown publicly — RLS restricts the row to the reporter and
+         staff. Declared under Other Data because Apple's Sensitive Info type
+         covers protected characteristics, not government identifiers. -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeOtherDataTypes</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
   </array>
 
   <key>NSPrivacyAccessedAPITypes</key>
