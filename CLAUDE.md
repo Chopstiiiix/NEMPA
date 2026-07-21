@@ -39,8 +39,60 @@ Everything compiles as a web app. Native folders (`/android`, `/ios`) are **not*
 - **Edge Function:** `broadcast-alert` deployed + `verify_jwt` on. **FCM secrets ARE set** (`FCM_PROJECT_ID=nempa-22521`, `FCM_SERVICE_ACCOUNT`) and verified end-to-end — the service account mints an FCM OAuth token successfully; sends to a real device token will deliver. Returns `{ok, targeted, sent, failed, errors}`. The only thing left for real push is registering device tokens, which needs a native build on a device.
 - **Seed:** one sample `pending` alert (Adaeze Okoro, Ikeja) so the moderation queue is testable.
 - **Auth → "Confirm email" is ON** (was off during early dev; this doc said otherwise until 2026-07-21). Signup therefore sends a confirmation email and the account can't sign in until the link is clicked.
-- ⚠️ **The confirmation link dead-ends.** Site URL is still the default `http://localhost:3000`, so on a phone the link confirms the account server-side and then fails to load ("localhost is currently unreachable"). Confirmation *works* — only the redirect is broken, which reads like total failure to a user. Nothing in the app passes `emailRedirectTo`, and there's no deep-link handler, so this needs either: (a) confirmations off, (b) Site URL pointed at a real https "you're confirmed, reopen Sparrowtell" page, or (c) a custom scheme (`ng.nempa.app://auth/callback`) added to Redirect URLs + `@capacitor/app` `appUrlOpen` handling.
-- 🚨 **CUSTOM SMTP IS A HARD BLOCKER — signup is currently closed to everyone but the project team.** Supabase's built-in email service *only delivers to addresses belonging to the project's team*; it silently refuses everyone else. Combined with "Confirm email" being ON, that means an ordinary user never receives the mail, so can never confirm, so can never sign in. It is not a branding issue and not a rate-limit issue — it makes the app unusable for real users. Fix: Project Settings → Authentication → SMTP Settings, with a provider (Resend/Postmark/SendGrid/SES) on a domain you own + SPF/DKIM. That also unlocks the `Sparrowtell <no-reply@…>` sender name. Secondary limits: built-in service is a few emails/hour; with custom SMTP the auth-email default is 30 new users/hour, adjustable under Authentication → Rate Limits.
+
+### Auth email — WORKING end-to-end as of 2026-07-21 (was the hard blocker)
+
+Signup email used to be broken for everyone outside the Supabase project team, which made
+the app unusable for real users. **That is fixed and verified with a real signup to a
+non-team Gmail address.** Do not "re-fix" any of this; the pieces below are live.
+
+- **Sending domain:** `sparrowtell.inspire-edge.net` (subdomain of `inspire-edge.net`, which
+  is registered and delegated to Cloudflare — NS `bryce`/`pola.ns.cloudflare.com`).
+- **Provider:** Resend, domain **Verified**, region eu-west-1. Four DNS records live in the
+  **`inspire-edge.net`** Cloudflare zone, all proxy **DNS only**, TTL Auto:
+
+  | Type | Name (relative to the zone) | Value |
+  |---|---|---|
+  | TXT | `resend._domainkey.sparrowtell` | DKIM `p=MIGf…EdEwIDAQAB` (1024-bit RSA, 216 chars, single string) |
+  | MX | `send.sparrowtell` | `feedback-smtp.eu-west-1.amazonses.com` prio 10 |
+  | TXT | `send.sparrowtell` | `v=spf1 include:amazonses.com ~all` |
+  | TXT | `_dmarc.sparrowtell` | `v=DMARC1; p=none;` |
+
+  > Resend's setup page shows the DMARC row as a bare `_dmarc` while showing the other three
+  > with the `.sparrowtell` suffix. Entering it verbatim creates `_dmarc.inspire-edge.net` —
+  > a DMARC policy for the whole parent domain. It belongs at `_dmarc.sparrowtell`. DMARC is
+  > advisory and not part of Resend's gating set, so this costs nothing at verification time
+  > and the row disappears from the dashboard once verification starts.
+
+- **Supabase SMTP** (Project Settings → Authentication → SMTP Settings): host
+  `smtp.resend.com`, port 587, **username the literal string `resend`**, password = a Resend
+  API key with *Sending access* only, sender `Sparrowtell <no-reply@sparrowtell.inspire-edge.net>`.
+  The sender address must be on the verified domain or Resend 403s every send, which Supabase
+  surfaces as a generic email failure.
+- **Rate limit:** with custom SMTP the auth-email default is 30 new users/hour
+  (Authentication → Rate Limits). Raise before any launch push.
+- ⚠️ **Debugging gotcha:** when checking these records, `dig +short` against a public resolver
+  can return empty for up to 30 min after a change (the zone SOA sets a 1800s *negative* TTL,
+  so an earlier failed lookup stays cached). Query the authoritative NS with `+norecurse` and
+  read `ANSWER:` from the full response before concluding a record is missing. This produced a
+  false "nothing went through" report during setup.
+
+**Confirmation redirect — also fixed.** Site URL is `https://sparrowtell.inspire-edge.net`
+(not `localhost:3000` as this doc claimed until 2026-07-21), with Redirect URLs
+`https://sparrowtell.inspire-edge.net/**` and `ng.nempa.app://**`. The page is `site/index.html`,
+deployed to Cloudflare Pages (`nempa.pages.dev`); it reads auth errors from **both** the URL
+fragment (implicit flow) and the query string (PKCE), strips the fragment, and offers an
+"Open Sparrowtell" button pointing at `ng.nempa.app://`.
+
+> Nothing in `src/` passes `emailRedirectTo`, so `signUp` relies entirely on the project's
+> Site URL. Changing Site URL silently changes where every confirmation link lands.
+
+> ⚠️ **The "Open Sparrowtell" button needs a build newer than 2026-07-21 08:01.** iOS registers
+> URL schemes at *install* time, and `CFBundleURLTypes` was added to `Info.plist` in commit
+> `92636bf`. Any device still running an earlier build has no handler for `ng.nempa.app://`, so
+> the browser shows a "switch apps?" prompt and then silently does nothing. Rebuild + reinstall
+> fixes it. Even then the app only foregrounds to the sign-in screen — there is no
+> `@capacitor/app` `appUrlOpen` handler, which is fine because the link carries no token.
 
 Moderation is no longer done in this app at all — see the next section. The `profiles.role`
 column and `is_staff()` still exist and still gate the RLS policies that Gecko will write
