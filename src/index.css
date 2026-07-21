@@ -214,6 +214,7 @@ a { color: inherit; }
   position: relative; overflow: hidden;
   transition: transform 0.18s var(--ease), border-color 0.18s var(--ease);
 }
+.alert-card:active { transform: scale(0.982); }
 .alert-card:active { transform: scale(0.985); }
 .alert-card__thumb {
   width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0;
@@ -473,7 +474,10 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+  transition: transform 0.22s var(--ease);
 }
+/* press feedback — the tab gives under the thumb, then springs back */
+.nav__item:active .nav__item-content { transform: scale(0.9); }
 .nav__icon { height: 22px; display: inline-flex; align-items: center; justify-content: center; }
 .nav__icon svg { display: block; }
 .nav__item-icon { font-size: 20px; line-height: 1; }

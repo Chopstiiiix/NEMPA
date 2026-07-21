@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSwipeBack } from './lib/useSwipeBack';
+import { useOverscrollBounce } from './lib/useOverscrollBounce';
 import { armSos } from './lib/sos';
 import { initGlobalHaptics } from './lib/haptics';
 import Nav from './components/Nav';
@@ -15,22 +16,29 @@ import logo from './assets/sparrow-logo.png';
 function AnimatedRoutes() {
   const location = useLocation();
   useSwipeBack();
+  // The bounce wrapper sits OUTSIDE the keyed motion.div on purpose: that one
+  // remounts on every route change, and the hook needs a node that survives so
+  // its listeners don't end up bound to a detached element.
+  const bounceRef = useRef<HTMLDivElement>(null);
+  useOverscrollBounce(bounceRef);
   // Enter-only animation: no AnimatePresence exit-wait, so switching tabs
   // mounts the next page immediately instead of stalling on the old one.
   return (
-    <motion.div
-      key={location.pathname}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <Routes location={location}>
-        <Route path="/" element={<Feed />} />
-        <Route path="/report" element={<ReportForm />} />
-        <Route path="/alert/:id" element={<AlertDetail />} />
-        <Route path="/account" element={<Auth />} />
-      </Routes>
-    </motion.div>
+    <div ref={bounceRef}>
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Feed />} />
+          <Route path="/report" element={<ReportForm />} />
+          <Route path="/alert/:id" element={<AlertDetail />} />
+          <Route path="/account" element={<Auth />} />
+        </Routes>
+      </motion.div>
+    </div>
   );
 }
 

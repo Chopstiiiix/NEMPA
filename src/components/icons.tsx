@@ -1,11 +1,14 @@
-// Nav icons with outline (unselected) and color-filled (selected) variants.
-// Filled uses the accent color passed via `fill`; outline uses currentColor.
+// Nav icons with outline (unselected) and solid-filled (selected) variants.
+// Both variants paint with currentColor so a selected icon takes its color from
+// `.nav__item--on` — exactly like the Report tab's ＋ glyph, which is plain text.
+// (Hardcoding the fill here is what used to make Alerts/Account go dark on select
+// while Report lit up leaf-green.)
 
 interface IconProps { active: boolean; size?: number }
 
 export function BellIcon({ active, size = 22 }: IconProps) {
   return active ? (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--brand)" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2a6.5 6.5 0 0 0-6.5 6.5c0 3.6-1.2 5.5-2.1 6.6A1.1 1.1 0 0 0 4.3 17h15.4a1.1 1.1 0 0 0 .9-1.9c-.9-1.1-2.1-3-2.1-6.6A6.5 6.5 0 0 0 12 2Z" />
       <path d="M9.5 19a2.5 2.5 0 0 0 5 0Z" />
     </svg>
@@ -23,7 +26,7 @@ export function BellIcon({ active, size = 22 }: IconProps) {
 
 export function PersonIcon({ active, size = 22 }: IconProps) {
   return active ? (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--brand)" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
       <path d="M12 14c-4.4 0-8 2.4-8 5.4 0 .9.7 1.6 1.6 1.6h12.8c.9 0 1.6-.7 1.6-1.6 0-3-3.6-5.4-8-5.4Z" />
     </svg>
