@@ -35,3 +35,12 @@ select
   p.details   as reporter_details
 from sos_events s
 left join profiles p on p.id = s.user_id;
+
+-- ------------------------------------------------------------
+-- register_device_handover migration (2026-07-21)
+-- ------------------------------------------------------------
+-- push_token is globally unique. When a second account signs in on a phone that
+-- another account already registered, the client upsert resolved to an UPDATE of
+-- a row owned by someone else, which "manage own devices" refuses — silently,
+-- because the client never read the error. The device never registered and SOS
+-- could not page that account. See supabase/register-device.sql.

@@ -38,16 +38,18 @@ export async function registerPush(userId: string) {
   });
 }
 
-async function saveDeviceToken(userId: string, token: string) {
+async function saveDeviceToken(_userId: string, token: string) {
   const loc = await getCurrentLocation();
-  await supabase.from('devices').upsert(
-    {
-      user_id: userId,
-      push_token: token,
-      platform: Capacitor.getPlatform(),
-      location: loc ? toPointWKT(loc) : null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'push_token' },
-  );
+  // RPC, not upsert. push_token is globally unique, so when a second account signs
+  // in on a phone another account already registered, the upsert resolved to an
+  // UPDATE of someone else's row and RLS refused it — silently, because the error
+  // was never read. register_device() hands the token over to the caller instead.
+  const { error } = await supabase.rpc('register_device', {
+    p_token: token,
+    p_platform: Capacitor.getPlatform(),
+    p_location: loc ? toPointWKT(loc) : null,
+  });
+  // Never swallow this again: a device that fails to register cannot be paged for
+  // an SOS, and nothing else in the app would ever reveal it.
+  if (error) console.error('register_device failed', error.message);
 }

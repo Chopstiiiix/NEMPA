@@ -16,8 +16,10 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(() => localStorage.getItem(REMEMBERED_EMAIL) !== null);
   const [showPassword, setShowPassword] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'reset'>('signin');
   const [msg, setMsg] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     // Use getSession() (reads local/in-memory session, no network) — NOT getUser(),
@@ -30,6 +32,45 @@ export default function Auth() {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  /**
+   * Password recovery by 6-digit code, not by link.
+   *
+   * A recovery *link* lands the session in Safari, not in the app — the user ends
+   * up signed in somewhere they can't change anything from. verifyOtp keeps the
+   * whole flow inside the app: request a code, type it in, set the new password.
+   * Requires the Recovery email template to include {{ .Token }} (see
+   * supabase/email-templates/) — a template with only {{ .ConfirmationURL }}
+   * sends a link and no code, and this screen will have nothing to accept.
+   */
+  async function sendResetCode() {
+    setBusy(true);
+    setMsg('');
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    setBusy(false);
+    // Deliberately the same message either way: telling a stranger whether an
+    // address has an account here is an account-enumeration leak, and this is an
+    // app where being a known user is itself sensitive.
+    setMsg(error ? error.message : 'If that address has an account, a 6-digit code is on its way.');
+    if (!error) setMode('reset');
+  }
+
+  async function applyNewPassword() {
+    if (password.length < 6) { setMsg('Pick a password of at least 6 characters.'); return; }
+    setBusy(true);
+    setMsg('');
+    // The code exchanges for a real session; only then can the password be set.
+    const { error: otpErr } = await supabase.auth.verifyOtp({
+      email: email.trim(), token: code.trim(), type: 'recovery',
+    });
+    if (otpErr) { setBusy(false); setMsg(otpErr.message); return; }
+    const { error: updErr } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (updErr) { setMsg(updErr.message); return; }
+    setMsg('Password changed — you are signed in.');
+    setCode('');
+    setPassword('');
+  }
 
   async function submit() {
     setMsg('');
@@ -78,8 +119,17 @@ export default function Auth() {
   return (
     <div className="page">
       <div className="card" style={{ padding: 'var(--s5)' }}>
-        <h1 className="page__title">{mode === 'signin' ? 'Sign in' : 'Create account'}</h1>
-        <p className="page__sub">Access community alerts</p>
+        <h1 className="page__title">
+          {mode === 'signin' ? 'Sign in'
+            : mode === 'signup' ? 'Create account'
+            : mode === 'forgot' ? 'Reset password'
+            : 'Enter your code'}
+        </h1>
+        <p className="page__sub">
+          {mode === 'forgot' ? 'We will email you a 6-digit code'
+            : mode === 'reset' ? 'Then choose a new password'
+            : 'Access community alerts'}
+        </p>
 
         <div className="field">
           <label className="field__label" htmlFor="auth-email">Email</label>
@@ -95,53 +145,122 @@ export default function Auth() {
           />
         </div>
 
-        <div className="field">
-          <label className="field__label" htmlFor="auth-password">Password</label>
-          <div className="input-reveal">
+        {mode === 'reset' && (
+          <div className="field">
+            <label className="field__label" htmlFor="auth-code">6-digit code</label>
             <input
-              id="auth-password"
+              id="auth-code"
               className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type={showPassword ? 'text' : 'password'}
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              placeholder="••••••••"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              style={{ letterSpacing: '0.4em', fontFamily: 'var(--font-mono)' }}
             />
-            <button
-              type="button"
-              className="input-reveal__btn"
-              onClick={() => setShowPassword((s) => !s)}
-              aria-pressed={showPassword}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
           </div>
-        </div>
+        )}
 
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-          />
-          <span>Remember my email</span>
-        </label>
+        {mode !== 'forgot' && (
+          <div className="field">
+            <label className="field__label" htmlFor="auth-password">
+              {mode === 'reset' ? 'New password' : 'Password'}
+            </label>
+            <div className="input-reveal">
+              <input
+                id="auth-password"
+                className="input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="input-reveal__btn"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-pressed={showPassword}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+        )}
 
-        {msg && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{msg}</p>}
+        {(mode === 'signin' || mode === 'signup') && (
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <span>Remember my email</span>
+          </label>
+        )}
+
+        {msg && (
+          <p
+            className={`notice${/^(If that address|Password changed|Account created)/.test(msg) ? '' : ' notice--error'}`}
+            style={{ marginTop: 'var(--s4)' }}
+          >
+            {msg}
+          </p>
+        )}
 
         <div style={{ marginTop: 'var(--s5)' }}>
-          <button className="btn btn-primary btn--block btn--lg" onClick={submit}>
-            {mode === 'signin' ? 'Sign in' : 'Sign up'}
+          <button
+            className="btn btn-primary btn--block btn--lg"
+            disabled={busy}
+            onClick={
+              mode === 'forgot' ? () => void sendResetCode()
+                : mode === 'reset' ? () => void applyNewPassword()
+                : submit
+            }
+          >
+            {busy ? 'Working…'
+              : mode === 'signin' ? 'Sign in'
+              : mode === 'signup' ? 'Sign up'
+              : mode === 'forgot' ? 'Send code'
+              : 'Set new password'}
           </button>
         </div>
+
+        {mode === 'signin' && (
+          <button
+            className="btn btn--ghost btn--block"
+            style={{ marginTop: 'var(--s3)' }}
+            onClick={() => { setMsg(''); setPassword(''); setMode('forgot'); }}
+          >
+            Forgot password?
+          </button>
+        )}
+
+        {mode === 'reset' && (
+          <button
+            className="btn btn--ghost btn--block"
+            style={{ marginTop: 'var(--s3)' }}
+            disabled={busy}
+            onClick={() => void sendResetCode()}
+          >
+            Resend code
+          </button>
+        )}
 
         <button
           className="btn btn--ghost btn--block"
           style={{ marginTop: 'var(--s3)' }}
-          onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+          onClick={() => {
+            setMsg('');
+            setCode('');
+            setPassword('');
+            setMode(mode === 'signin' ? 'signup' : mode === 'signup' ? 'signin' : 'signin');
+          }}
         >
-          {mode === 'signin' ? 'No account? Sign up' : 'Have an account? Sign in'}
+          {mode === 'signin' ? 'No account? Sign up'
+            : mode === 'signup' ? 'Have an account? Sign in'
+            : 'Back to sign in'}
         </button>
       </div>
     </div>
