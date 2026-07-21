@@ -68,7 +68,11 @@ Deno.serve(async (req) => {
       ? ` near ${Number(sos.lat).toFixed(4)}, ${Number(sos.lng).toFixed(4)}`
       : ' (location pending)';
     const title = danger ? '🚨 DANGER — live incident' : '🆘 SOS — user needs help';
-    const body = `${who}${where}. Open the review queue to track live location${danger ? ' and audio evidence' : ''}.`;
+    // This push is a "get to your console" page, nothing more. Sparrowtell has no
+    // staff UI any more (the review queue was removed on 2026-07-21) — the live
+    // trail, audio evidence and the reporter's details are all in Gecko. Do not
+    // tell responders to open something this app does not have.
+    const body = `${who}${where}. Open Gecko to track live location${danger ? ' and audio evidence' : ''}.`;
 
     const results = await Promise.allSettled(
       (devices as { push_token: string }[]).map(async (d) => {
