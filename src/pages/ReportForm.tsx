@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { getCurrentLocation, toPointWKT } from '../lib/geo';
 import { pickPhotoNative, uploadAlertPhoto } from '../lib/photo';
 import { BirdLoader } from '../components/Loader';
+import { ALERT_TYPES, alertTypeMeta } from '../lib/alertTypes';
 import type { AlertType } from '../types';
 
 export default function ReportForm() {
@@ -170,18 +171,16 @@ export default function ReportForm() {
       <p className="page__sub">Goes to responders immediately</p>
 
       <div className="segment" role="tablist" aria-label="Report type">
-        {(['missing_person', 'robbery'] as const).map((t) => {
-          const on = type === t;
+        {ALERT_TYPES.map((meta) => {
+          const on = type === meta.value;
           return (
             <button
-              key={t}
+              key={meta.value}
               type="button"
               role="tab"
               aria-selected={on}
-              onClick={() => setType(t)}
-              className={`segment__item${
-                on ? ` segment__item--on ${t === 'missing_person' ? 'is-missing' : 'is-robbery'}` : ''
-              }`}
+              onClick={() => setType(meta.value)}
+              className={`segment__item${on ? ` segment__item--on is-${meta.cls}` : ''}`}
             >
               {on && (
                 <motion.span
@@ -190,13 +189,18 @@ export default function ReportForm() {
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
-              <span className="segment__label">
-                {t === 'missing_person' ? 'Missing Person' : 'Robbery'}
-              </span>
+              <span className="segment__label">{meta.label}</span>
             </button>
           );
         })}
       </div>
+
+      {type === 'other' && (
+        <p className="notice" style={{ marginBottom: 'var(--s4)' }}>
+          For any other security incident — assault, kidnapping, vandalism, a
+          threat in your area. Describe what happened and where.
+        </p>
+      )}
 
       <div className="field">
         <label className="field__label" htmlFor="rf-title">Title *</label>
@@ -258,7 +262,7 @@ export default function ReportForm() {
       <div className="field">
         <label className="field__label" htmlFor="rf-details">Details</label>
         <textarea id="rf-details" value={form.description} onChange={set('description')} rows={4}
-          placeholder="Clothing, distinguishing features, what happened…" />
+          placeholder={alertTypeMeta(type).detailsHint} />
       </div>
 
       {error && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{error}</p>}

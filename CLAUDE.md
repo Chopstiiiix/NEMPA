@@ -82,7 +82,8 @@ SOS anywhere.
 The UI uses an **"emergency dispatch / civic signal"** aesthetic (dark, high-contrast). All tokens + component classes live in `src/index.css` — **use those classes, don't reintroduce ad-hoc inline styles**.
 
 - **Fonts (self-hosted via @fontsource, offline-safe):** Bricolage Grotesque (display `--font-display`), IBM Plex Sans (body), IBM Plex Mono (labels/timestamps/IDs). Imported in `src/main.tsx`.
-- **Key classes:** `.page/.page__title/.page__sub`, `.card`, `.alert-card`, `.badge--missing|robbery|live|pending`, `.btn` family (`.btn-primary`, `.btn--live`, `.btn--danger`, `.btn--ghost`, `.btn--block/lg`), `.segment/.segment__item`, `.field/.field__label`, `.empty`, `.skeleton`, `.notice`, `.map-frame`, `.nav`, `.mono`, `.status-dot--live`.
+- **Report types:** `src/lib/alertTypes.ts` is the single source of truth (`missing_person`, `robbery`, `other`) — label, short label and CSS class. Adding a type = a row there, a colour rule in `index.css`, and `alter type alert_type add value` in Postgres. Don't reintroduce `type === 'robbery' ? … : …` ternaries; they silently mislabel everything past the second type.
+- **Key classes:** `.page/.page__title/.page__sub`, `.card`, `.alert-card`, `.badge--missing|robbery|other|live|pending`, `.btn` family (`.btn-primary`, `.btn--live`, `.btn--danger`, `.btn--ghost`, `.btn--block/lg`), `.segment/.segment__item`, `.field/.field__label`, `.empty`, `.skeleton`, `.notice`, `.map-frame`, `.nav`, `.mono`, `.status-dot--live`.
 - **Shell:** `App.tsx` renders a sticky `.app-bar` + bottom `.nav`; the nav is a fixed three-tab list (Alerts / Report / Account) for every user — no staff tab.
 - Old token names (`--signal`, `--surface`, `--r`, etc.) are kept as aliases for back-compat.
 

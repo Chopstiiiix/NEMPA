@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { ALERT_TYPES } from '../lib/alertTypes';
 import AlertCard from '../components/AlertCard';
 import { PageLoader } from '../components/Loader';
 import type { Alert, AlertType } from '../types';
@@ -48,16 +49,15 @@ export default function Feed() {
         aria-label="Filter alerts by type"
         style={{ marginBottom: 'var(--s5)' }}
       >
-        {(['all', 'missing_person', 'robbery'] as const).map((f) => {
-          const on = filter === f;
-          const mod = f === 'missing_person' ? ' is-missing' : f === 'robbery' ? ' is-robbery' : '';
+        {[{ value: 'all' as const, short: 'All', cls: '' }, ...ALERT_TYPES].map((f) => {
+          const on = filter === f.value;
           return (
             <button
-              key={f}
+              key={f.value}
               type="button"
-              onClick={() => setFilter(f)}
+              onClick={() => setFilter(f.value)}
               aria-pressed={on}
-              className={`segment__item${on ? ' segment__item--on' + mod : ''}`}
+              className={`segment__item${on ? ' segment__item--on' + (f.cls ? ` is-${f.cls}` : '') : ''}`}
             >
               {on && (
                 <motion.span
@@ -66,9 +66,7 @@ export default function Feed() {
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
-              <span className="segment__label">
-                {f === 'all' ? 'All' : f === 'missing_person' ? 'Missing' : 'Robbery'}
-              </span>
+              <span className="segment__label">{f.short}</span>
             </button>
           );
         })}

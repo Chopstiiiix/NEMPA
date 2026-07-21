@@ -1,0 +1,11 @@
+-- Applied to the live project (ticnoeumdvticwtuaujd) on 2026-07-21 as the
+-- `add_other_alert_type` migration. Kept here so the repo tells the same story
+-- as the database.
+--
+-- Third report type: "Other" — any security incident that is neither a missing
+-- person nor a robbery (assault, kidnapping, vandalism, a threat in the area).
+--
+-- NOTE: adding an enum value is effectively one-way. Postgres has no
+-- `ALTER TYPE ... DROP VALUE`; removing 'other' would mean recreating the type
+-- and rewriting every column that uses it.
+alter type alert_type add value if not exists 'other';

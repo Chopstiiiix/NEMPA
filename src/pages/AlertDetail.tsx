@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import AlertMap from '../components/AlertMap';
 import { BellIcon, PersonIcon } from '../components/icons';
 import { PageLoader } from '../components/Loader';
+import { alertTypeMeta } from '../lib/alertTypes';
 import type { Alert, GeoPoint } from '../types';
 
 export default function AlertDetail() {
@@ -25,8 +26,7 @@ export default function AlertDetail() {
       ? { lat: alert.last_seen_lat, lng: alert.last_seen_lng }
       : null;
 
-  const typeCls = alert.type === 'robbery' ? 'robbery' : 'missing';
-  const typeLabel = alert.type === 'robbery' ? 'Robbery' : 'Missing';
+  const { cls: typeCls, short: typeLabel } = alertTypeMeta(alert.type);
   const resolved = alert.status === 'resolved';
   // Only ever your own report (RLS) — with responders, not yet broadcast.
   const pending = alert.status === 'pending';
@@ -51,7 +51,10 @@ export default function AlertDetail() {
           <img src={alert.photo_url} alt={alert.title} />
         ) : (
           <span className="detail-photo__placeholder">
-            {alert.type === 'robbery' ? <BellIcon active={false} size={88} /> : <PersonIcon active={false} size={88} />}
+            {/* a person for a missing person; the alert bell for any incident */}
+            {alert.type === 'missing_person'
+              ? <PersonIcon active={false} size={88} />
+              : <BellIcon active={false} size={88} />}
             <span className="mono" style={{ marginTop: 'var(--s3)' }}>No photo provided</span>
           </span>
         )}

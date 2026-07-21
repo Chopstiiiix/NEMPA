@@ -188,6 +188,7 @@ a { color: inherit; }
 }
 .badge--missing  { color: var(--missing);  background: var(--missing-weak);  border-color: color-mix(in srgb, var(--missing) 35%, transparent); }
 .badge--robbery  { color: var(--critical); background: var(--critical-weak); border-color: color-mix(in srgb, var(--critical) 35%, transparent); }
+.badge--other    { color: var(--info);     background: var(--info-weak);     border-color: color-mix(in srgb, var(--info) 30%, transparent); }
 .badge--live     { color: var(--live);     background: var(--live-weak);     border-color: color-mix(in srgb, var(--live) 35%, transparent); }
 .badge--pending  { color: var(--text-dim); background: var(--surface-2);     border-color: var(--border); }
 .badge--resolved   { color: var(--live);     background: var(--live-weak);     border-color: color-mix(in srgb, var(--live) 35%, transparent); }
@@ -294,6 +295,7 @@ a { color: inherit; }
 .segment__item--on { color: var(--text); }
 .segment__item--on.is-missing { color: var(--missing); }
 .segment__item--on.is-robbery { color: var(--critical); }
+.segment__item--on.is-other   { color: var(--info); }
 
 /* ============================================================
    Form fields
@@ -421,6 +423,7 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 .detail-photo__badges .badge--resolved,
 .detail-photo__badges .badge--live        { background: var(--live);     color: #F4F1E6; }
 .detail-photo__badges .badge--pending     { background: var(--ink-2);    color: var(--brand-ink); }
+.detail-photo__badges .badge--other       { background: var(--brand);    color: var(--brand-ink); }
 
 /* ============================================================
    Map frame

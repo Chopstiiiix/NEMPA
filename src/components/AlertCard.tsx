@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
+import { alertTypeMeta } from '../lib/alertTypes';
 import type { Alert } from '../types';
-
-const typeMeta: Record<string, { label: string; cls: string }> = {
-  missing_person: { label: 'Missing', cls: 'missing' },
-  robbery: { label: 'Robbery', cls: 'robbery' },
-};
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -14,7 +10,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function AlertCard({ alert }: { alert: Alert }) {
-  const meta = typeMeta[alert.type] ?? { label: alert.type, cls: 'missing' };
+  const meta = alertTypeMeta(alert.type);
   const resolved = alert.status === 'resolved';
   // Only ever your own report (RLS) — it is with responders but not yet public.
   const pending = alert.status === 'pending';
@@ -27,7 +23,7 @@ export default function AlertCard({ alert }: { alert: Alert }) {
       />
       <div className="alert-card__body">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className={`badge badge--${meta.cls}`}>{meta.label}</span>
+          <span className={`badge badge--${meta.cls}`}>{meta.short}</span>
           {pending ? (
             <span className="badge badge--pending">With responders</span>
           ) : (

@@ -1,4 +1,5 @@
-export type AlertType = 'missing_person' | 'robbery';
+// Mirrors the Postgres `alert_type` enum — keep the two in step.
+export type AlertType = 'missing_person' | 'robbery' | 'other';
 export type AlertStatus = 'pending' | 'verified' | 'resolved' | 'rejected';
 export type UserRole = 'citizen' | 'moderator' | 'admin';
 

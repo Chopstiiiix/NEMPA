@@ -7,7 +7,7 @@
 create extension if not exists postgis;
 
 -- 2. Enums -----------------------------------------------------
-create type alert_type   as enum ('missing_person', 'robbery');
+create type alert_type   as enum ('missing_person', 'robbery', 'other');
 create type alert_status as enum ('pending', 'verified', 'resolved', 'rejected');
 create type user_role    as enum ('citizen', 'moderator', 'admin');
 
