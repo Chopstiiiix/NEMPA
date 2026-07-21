@@ -63,9 +63,6 @@ export default function App() {
         <header className="app-bar">
           <img src={logo} className="app-bar__logo" alt="Sparrowtell" />
           <span className="app-bar__tag">Community Alert Network</span>
-          <button className="sos-chip" onClick={() => void armSos('sos')} aria-label="Trigger SOS">
-            SOS
-          </button>
         </header>
         <AnimatedRoutes />
         <Nav />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { armSos } from '../lib/sos';
 import { ALERT_TYPES } from '../lib/alertTypes';
 import AlertCard from '../components/AlertCard';
 import { PageLoader } from '../components/Loader';
@@ -40,8 +41,22 @@ export default function Feed() {
 
   return (
     <div className="page">
-      <h1 className="page__title">Live Alerts</h1>
-      <p className="page__sub">Verified community reports near you</p>
+      {/* SOS lives here rather than in the app bar: at chip size in the top
+          corner it was a hard target to hit accurately, which is the wrong
+          trade for the one control that matters under stress. */}
+      <div className="page__head">
+        <div>
+          <h1 className="page__title">Alerts</h1>
+          <p className="page__sub page__sub--tight">Verified community reports near you</p>
+        </div>
+        <button
+          className="sos-hero"
+          onClick={() => void armSos('sos')}
+          aria-label="Send SOS — five second countdown before anything is sent"
+        >
+          SOS
+        </button>
+      </div>
 
       <div
         className="segment"

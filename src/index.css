@@ -518,6 +518,30 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
    SOS — panic trigger UI
    ============================================================ */
 /* small always-available trigger in the app bar */
+/* Page hero: title on the left, SOS on the right. */
+.page__head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s4); margin-bottom: var(--s5);
+}
+.page__sub--tight { margin-bottom: 0; }
+
+/* The primary emergency control. Sized for a real fingertip under stress —
+   72px square clears the 44px minimum target with room to spare, so it can be
+   hit without looking. */
+.sos-hero {
+  flex: 0 0 auto;
+  width: 72px; height: 72px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 17px;
+  letter-spacing: 0.1em;
+  color: #fff; background: linear-gradient(180deg, #C25A3E, var(--critical));
+  border: none; border-radius: var(--r-pill);
+  box-shadow: 0 8px 22px -8px var(--critical), inset 0 1px 0 rgba(255,255,255,0.24);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease;
+}
+.sos-hero:active { transform: scale(0.94); }
+
 .sos-chip {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--font-mono); font-weight: 700; font-size: 11px;

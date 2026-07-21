@@ -41,16 +41,24 @@ export function initVolumeTriggers(onSos: () => void, onDanger: () => void) {
     return false;
   };
 
-  if (Capacitor.isNativePlatform()) {
+  // ⚠️ Android only. The iOS path is DISABLED (2026-07-21) after testing on a
+  // device: watching AVAudioSession.outputVolume never fired, because the
+  // hardware buttons drive the ringer rather than media volume unless audio is
+  // playing. Looping a silent track to force the route was tried and still did
+  // not work on device, so the plugin is left in place but never enabled —
+  // running it would keep silent audio playing forever for a feature that does
+  // nothing. On iOS the out-of-app triggers (quick action, Siri, Back Tap,
+  // Action Button) and the on-screen SOS button are the emergency paths.
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
     void VolumeButtons.addListener('volumePress', (e) => {
       if (e.longPress && e.direction === 'up') { onDanger(); return; }
       if (e.direction === 'down' && record(downTimes)) onSos();
-      // iOS can't see long-presses — 5 rapid volume-UPs also raise danger
       if (e.direction === 'up' && !e.longPress && record(upTimes)) onDanger();
     });
     void VolumeButtons.enable().catch((e) => console.warn('VolumeButtons enable failed', e));
     return;
   }
+  if (Capacitor.isNativePlatform()) return; // iOS: nothing to bind
 
   // web/dev simulation
   window.addEventListener('keydown', (e) => {

@@ -246,7 +246,15 @@ so a slow encoder can't leave two recorders running against one stream.
 | Android Quick Settings tile | closed | `SosTileService.java` |
 | Android volume ×5 with screen off | closed, **opt-in** | `SosForegroundService.java` |
 
-> 🚨 **iOS volume triggers need the silent track in `VolumeButtonsPlugin.swift`.**
+> 🛑 **iOS volume triggers are DISABLED and were never working.** `volumeTriggers.ts` now
+> binds only on Android. Tested on device: volume-down ×5 did nothing, and the silent-track
+> fix below did not rescue it either. The plugin is left in the project but never `enable()`d
+> — running it would loop silent audio forever for a feature that does nothing. On iOS the
+> emergency paths are the on-screen SOS button plus the out-of-app triggers (quick action,
+> Siri, Back Tap, Action Button). **Do not re-enable without testing on a real device**; it
+> compiles, registers and reports success while emitting no events whatsoever.
+
+> **Background on the iOS failure** (kept because it is the trap, not the fix):
 > `AVAudioSession.outputVolume` tracks the **media** volume, but when nothing is playing the
 > hardware buttons adjust the **ringer** — the user gets a volume HUD, media volume never
 > moves, the KVO observer never fires, and not one event reaches JS. The plugin shipped this
