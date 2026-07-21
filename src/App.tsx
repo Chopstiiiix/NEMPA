@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useSwipeBack } from './lib/useSwipeBack';
 import { useOverscrollBounce } from './lib/useOverscrollBounce';
 import { armSos } from './lib/sos';
+import { initSosLaunch } from './lib/sosLaunch';
 import { initGlobalHaptics } from './lib/haptics';
 import Nav from './components/Nav';
 import SosOverlay from './components/SosOverlay';
@@ -48,7 +49,14 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
-  useEffect(() => { initGlobalHaptics(); }, []);
+  useEffect(() => {
+    initGlobalHaptics();
+    // Quick action / Siri / Back Tap / Action Button. Routed through armSos so
+    // an out-of-app trigger gets the same 5-second cancellable countdown as a
+    // volume-button one — Back Tap in particular can fire from a knock against
+    // a table, and an un-cancellable trigger would send false alarms.
+    initSosLaunch((kind) => void armSos(kind));
+  }, []);
   return (
     <HashRouter>
       <div className="app">

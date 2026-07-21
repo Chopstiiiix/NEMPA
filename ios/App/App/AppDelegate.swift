@@ -6,9 +6,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    // Home-screen quick-action ids (long-press the app icon). Must match the
+    // UIApplicationShortcutItemType values in Info.plist.
+    private static let sosShortcut = "ng.nempa.app.sos"
+    private static let dangerShortcut = "ng.nempa.app.danger"
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Cold launch via a quick action: iOS hands the item here rather than
+        // to performActionFor. Handled in both places on purpose — the pending
+        // value is a single key, so a double delivery writes the same thing
+        // twice and JS still drains exactly one trigger.
+        if let item = launchOptions?[.shortcutItem] as? UIApplicationShortcutItem {
+            AppDelegate.handleShortcut(item)
+        }
         return true
+    }
+
+    /// Warm launch via a quick action (app already running or suspended).
+    func application(
+        _ application: UIApplication,
+        performActionFor shortcutItem: UIApplicationShortcutItem,
+        completionHandler: @escaping (Bool) -> Void
+    ) {
+        AppDelegate.handleShortcut(shortcutItem)
+        completionHandler(true)
+    }
+
+    private static func handleShortcut(_ item: UIApplicationShortcutItem) {
+        switch item.type {
+        case sosShortcut:    SosLaunchPlugin.deliver(kind: "sos")
+        case dangerShortcut: SosLaunchPlugin.deliver(kind: "danger")
+        default: break
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

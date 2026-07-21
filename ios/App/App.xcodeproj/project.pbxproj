@@ -13,6 +13,9 @@
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		AA5051000000000000000101 /* VolumeButtonsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5051000000000000000001 /* VolumeButtonsPlugin.swift */; };
+		AA5051000000000000000105 /* SosIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5051000000000000000005 /* SosIntents.swift */; };
+		AA5051000000000000000104 /* SosLaunchPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = AA5051000000000000000004 /* SosLaunchPlugin.m */; };
+		AA5051000000000000000103 /* SosLaunchPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5051000000000000000003 /* SosLaunchPlugin.swift */; };
 		AA5051000000000000000102 /* VolumeButtonsPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = AA5051000000000000000002 /* VolumeButtonsPlugin.m */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
@@ -30,6 +33,9 @@
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AA5051000000000000000001 /* VolumeButtonsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeButtonsPlugin.swift; sourceTree = "<group>"; };
+		AA5051000000000000000005 /* SosIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SosIntents.swift; sourceTree = "<group>"; };
+		AA5051000000000000000004 /* SosLaunchPlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SosLaunchPlugin.m; sourceTree = "<group>"; };
+		AA5051000000000000000003 /* SosLaunchPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SosLaunchPlugin.swift; sourceTree = "<group>"; };
 		AA5051000000000000000002 /* VolumeButtonsPlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VolumeButtonsPlugin.m; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -65,7 +71,6 @@
 			isa = PBXGroup;
 			children = (
 				00C420442FCDD58F00737BE9 /* GoogleService-Info.plist */,
-				00C420502FCDD58F00737BE9 /* PrivacyInfo.xcprivacy */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
 				7F8756D8B27F46E3366F6CEA /* Pods */,
@@ -88,11 +93,15 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				AA5051000000000000000001 /* VolumeButtonsPlugin.swift */,
+				AA5051000000000000000005 /* SosIntents.swift */,
+				AA5051000000000000000004 /* SosLaunchPlugin.m */,
+				AA5051000000000000000003 /* SosLaunchPlugin.swift */,
 				AA5051000000000000000002 /* VolumeButtonsPlugin.m */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				504EC3131FED79650016851F /* Info.plist */,
+				00C420502FCDD58F00737BE9 /* PrivacyInfo.xcprivacy */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
@@ -227,6 +236,9 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				AA5051000000000000000101 /* VolumeButtonsPlugin.swift in Sources */,
+				AA5051000000000000000105 /* SosIntents.swift in Sources */,
+				AA5051000000000000000104 /* SosLaunchPlugin.m in Sources */,
+				AA5051000000000000000103 /* SosLaunchPlugin.swift in Sources */,
 				AA5051000000000000000102 /* VolumeButtonsPlugin.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

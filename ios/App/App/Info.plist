@@ -45,6 +45,29 @@
 	<string>Sparrowtell may save report photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Sparrowtell lets you choose a photo from your library to attach to a report.</string>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeShare</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Live location + audio</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Send SOS</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>ng.nempa.app.sos</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeAlarm</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Silent, high priority</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Danger alert</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>ng.nempa.app.danger</string>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -206,6 +206,42 @@ Seed data includes 3 verified demo alerts (Lagos/Abuja/PH) + 1 pending. Remove w
 
 Push now uses **`@capacitor-firebase/messaging`** (not `@capacitor/push-notifications`, which was removed) so `registerPush()` gets real **FCM tokens on both iOS and Android** — the `broadcast-alert` FCM v1 `token` send works unchanged on either platform. `src/lib/push.ts` uses `FirebaseMessaging.getToken()` + `tokenReceived`/`notificationActionPerformed` listeners. The web build stubs the optional `firebase/messaging` peer via `src/shims/firebase-messaging.ts` (aliased in `vite.config.ts`) — push is native-only, so the Firebase JS SDK is never bundled.
 
+### Emergency triggers — how SOS can be fired (2026-07-21)
+
+| Path | Works when app is… | Where |
+|---|---|---|
+| SOS chip in the app bar | open | `App.tsx` |
+| Volume-down ×5 / volume-up ×5 | **open and on screen only** | `volumeTriggers.ts` + native plugins |
+| Home-screen quick action (long-press icon) | closed | `Info.plist` `UIApplicationShortcutItems` + `AppDelegate` |
+| Siri phrase / Back Tap / Action Button | closed | `SosIntents.swift` |
+
+The volume triggers stop the moment the app backgrounds — the iOS listener is a KVO
+observation on `AVAudioSession.outputVolume` bound to the bridge's view controller
+(`VolumeButtonsPlugin.swift`), and Android's is `dispatchKeyEvent` in MainActivity. **No
+third-party app can intercept hardware buttons while it isn't running**; side-button ×5 is
+Apple's own Emergency SOS and is off limits. That gap is what the quick action and App
+Intent exist to cover.
+
+`SosLaunchPlugin` is the single delivery point for all out-of-app triggers. It stores the
+pending kind in **UserDefaults, not a static** — if the OS kills the process between the
+trigger and the WebView loading, an in-memory flag is lost and the user's SOS silently does
+nothing. JS drains it via `consumePending()` (read + clear in one native call) on boot, on
+the `sosLaunch` event, and on resume. **The event carries no payload on purpose**: if it
+delivered the kind, a trigger received while the app was running would fire once from the
+event and again from the next drain, because nothing would have cleared the stored value.
+
+Everything routes through `armSos()`, so out-of-app triggers get the same 5-second
+cancellable countdown. That matters most for Back Tap, which can fire from a knock against a
+table.
+
+> `openAppWhenRun = true` on both intents is deliberate: firing without opening the app would
+> mean re-implementing location, contact SMS, audio and dispatch in Swift — all of `sos.ts`.
+> On a locked phone iOS may demand Face ID before opening; that is an OS rule, not ours.
+> AppIntents is iOS 16+ while the deployment target is 13, so everything is `@available`-gated.
+
+Verified by inspecting the built `.app`: `Metadata.appintents/extract.actionsdata` contains
+both intents and all eight Siri phrases, and the quick actions are in the built `Info.plist`.
+
 ### iOS native (generated 2026-06-01)
 
 `ios/` Xcode project generated (`npx cap add ios`, CocoaPods via Homebrew). Bundle id `ng.nempa.app`. Already wired in-repo:
@@ -217,6 +253,12 @@ Push now uses **`@capacitor-firebase/messaging`** (not `@capacitor/push-notifica
 - ✅ `GoogleService-Info.plist` present at `ios/App/App/`, `BUNDLE_ID` matches `ng.nempa.app`, referenced by the App target.
 - ✅ Signing: `DEVELOPMENT_TEAM = 5K46PLQ658`, automatic. `App.entitlements` has `aps-environment`.
 - ✅ `Info.plist`: `UIBackgroundModes` = remote-notification / audio, all usage strings, and `ITSAppUsesNonExemptEncryption = false` (HTTPS only — skips the export-compliance prompt on every upload).
+- ⚠️ **Two copies of `GoogleService-Info.plist` exist** — `ios/App/` and `ios/App/App/` — and the
+  project references the **root** one. Anything added next to it in the pbxproj inherits the root
+  group, whose `sourceTree` resolves to `ios/App/`. That is how the privacy manifest first landed
+  with a broken path (`CpResource … /ios/App/PrivacyInfo.xcprivacy: No such file`). New files
+  belong in the `App` group (`path = App`). Updating Firebase config means updating the root copy,
+  or deleting it and re-pointing the reference.
 - ✅ `PrivacyInfo.xcprivacy` at `ios/App/App/`, **registered in the App target's Resources build phase** (hand-added to `project.pbxproj`; a manifest that isn't in the target ships as a dead file). Declares location / email / name / phone / address / photos / audio / user content, all `Linked`, none `Tracking`, purpose AppFunctionality; plus required-reason APIs UserDefaults `CA92.1`, FileTimestamp `C617.1`, DiskSpace `E174.1`. **Keep it in step with the App Store Connect privacy questionnaire — Apple compares the two and a mismatch is a rejection.**
 - Version/build: `MARKETING_VERSION 1.0` / `CURRENT_PROJECT_VERSION 2`. **Every App Store Connect upload needs a unique, higher build number.**
 
