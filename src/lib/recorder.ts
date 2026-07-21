@@ -37,6 +37,13 @@ export class EvidenceRecorder {
   private onSegment: SegmentHandler | null = null;
   private stopping = false;
 
+  /**
+   * Why the last start() failed, in words a non-engineer can act on. Surfaced
+   * on the SOS overlay: the first live test recorded nothing and gave the user
+   * no indication at all, which for a safety feature is worse than the bug.
+   */
+  lastError: string | null = null;
+
   get recording() { return this.rec?.state === 'recording'; }
 
   /** File extension matching the mime type actually in use. */
@@ -52,8 +59,12 @@ export class EvidenceRecorder {
    * has no MediaRecorder.
    */
   async start(onSegment: SegmentHandler): Promise<boolean> {
+    this.lastError = null;
     if (this.recording) return true;
-    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) return false;
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      this.lastError = 'not supported on this device';
+      return false;
+    }
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Chrome/Android WebView → webm/opus; Safari/WKWebView → mp4/aac.
@@ -66,6 +77,12 @@ export class EvidenceRecorder {
       return true;
     } catch (e) {
       console.error('recorder start failed', e);
+      const name = (e as { name?: string })?.name;
+      this.lastError = name === 'NotAllowedError'
+        ? 'microphone permission denied'
+        : name === 'NotFoundError'
+          ? 'no microphone found'
+          : 'microphone unavailable';
       this.cleanup();
       return false;
     }

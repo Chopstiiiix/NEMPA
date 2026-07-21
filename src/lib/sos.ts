@@ -31,6 +31,7 @@ export interface SosState {
   hidden: boolean;            // overlay dismissed but SOS still live (stealth)
   locationOn: boolean;
   recordingOn: boolean;
+  recordingError: string | null;  // why audio is not running, shown in the overlay
   dispatched: boolean;        // moderators notified
   pingCount: number;
   error: string | null;
@@ -39,7 +40,7 @@ export interface SosState {
 
 const initial: SosState = {
   phase: 'idle', kind: 'sos', countdown: 0, sosId: null, hidden: false,
-  locationOn: false, recordingOn: false, dispatched: false,
+  locationOn: false, recordingOn: false, recordingError: null, dispatched: false,
   pingCount: 0, error: null, lastPoint: null,
 };
 
@@ -134,7 +135,7 @@ async function fire() {
   const ok = await recorder.start((blob, seq, ext) => {
     void uploadSegment(user.id, row.id, blob, seq, ext);
   });
-  set({ recordingOn: ok });
+  set({ recordingOn: ok, recordingError: ok ? null : recorder.lastError });
 
   if (state.kind !== 'danger') {
     // Panic SOS: hand the user a pre-filled SMS to their emergency contacts.

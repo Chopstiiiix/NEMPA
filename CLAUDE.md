@@ -273,6 +273,16 @@ table.
 Verified by inspecting the built `.app`: `Metadata.appintents/extract.actionsdata` contains
 both intents and all eight Siri phrases, and the quick actions are in the built `Info.plist`.
 
+> 🚨 **`MainViewController.swift` is what makes `getUserMedia` work on iOS at all.** From iOS 15
+> WKWebView asks its `WKUIDelegate` before letting page JS reach the mic or camera, and if the
+> delegate doesn't implement `requestMediaCapturePermissionFor` WebKit **denies by default** —
+> silently, with no prompt, no console output, and a `getUserMedia` rejection the JS can't
+> distinguish from anything else. **Capacitor 6 does not implement it**, so every Capacitor iOS
+> app fails this way out of the box. Found on the first live SOS test: 13 location pings logged
+> while `sos_audio_segments` stayed empty. `Main.storyboard` points at this subclass — if that
+> reference is ever reset to `CAPBridgeViewController`, SOS audio silently dies again.
+> Granting is not a consent bypass: iOS still enforces the real mic permission on top.
+
 **Android background triggers — OPT-IN, off by default.** Turned on from `EmergencySetup`.
 Android requires a permanent notification for a foreground service, and a visible
 "Sparrowtell is running" on the phone of someone at risk is itself a hazard — which is the

@@ -95,12 +95,15 @@ export default function SosOverlay() {
                   <span className="status-dot" />
                   Responders {s.dispatched ? 'notified' : 'being notified…'}
                 </span>
-                {danger && (
-                  <span className={`sos-status__row${s.recordingOn ? ' sos-status__row--on' : ''}`}>
-                    <span className="status-dot" />
-                    Audio evidence {s.recordingOn ? 'recording' : 'unavailable'}
-                  </span>
-                )}
+                {/* Shown for BOTH kinds — audio is no longer danger-only, and
+                    gating this on `danger` meant a failing microphone during a
+                    plain SOS was completely invisible to the user. */}
+                <span className={`sos-status__row${s.recordingOn ? ' sos-status__row--on' : ''}`}>
+                  <span className="status-dot" />
+                  {s.recordingOn
+                    ? 'Audio recording'
+                    : `Audio unavailable${s.recordingError ? ` — ${s.recordingError}` : ''}`}
+                </span>
               </div>
 
               <div className="sos-actions">
