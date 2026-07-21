@@ -16,6 +16,8 @@ create table profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   full_name   text,
   phone       text,
+  address     text,
+  details     text,   -- free text for responders: appearance, medical info, who to call
   role        user_role not null default 'citizen',
   created_at  timestamptz not null default now()
 );
@@ -109,6 +111,13 @@ $$;
 -- profiles
 create policy "read own profile"   on profiles for select using (auth.uid() = id or is_staff());
 create policy "update own profile" on profiles for update using (auth.uid() = id);
+
+-- The policy above only proves the row is YOURS — it says nothing about which
+-- columns you may change, and Supabase grants table-wide UPDATE by default. Without
+-- this, any signed-in user could set their own role to 'admin', satisfy is_staff(),
+-- and read every profile, pending alert, SOS location trail and reporter NIN.
+revoke update on profiles from anon, authenticated;
+grant update (full_name, phone, address, details) on profiles to authenticated;
 
 -- devices: a user manages only their own
 create policy "manage own devices" on devices for all

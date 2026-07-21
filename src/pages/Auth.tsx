@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { registerPush } from '../lib/push';
 import EmergencyContacts from '../components/EmergencyContacts';
+import ProfileCard from '../components/ProfileCard';
 import type { User } from '@supabase/supabase-js';
 
 export default function Auth() {
@@ -57,6 +58,7 @@ export default function Auth() {
             Sign out
           </button>
         </div>
+        <ProfileCard userId={user.id} />
         <EmergencyContacts userId={user.id} />
       </div>
     );

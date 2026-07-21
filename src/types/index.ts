@@ -3,6 +3,16 @@ export type AlertType = 'missing_person' | 'robbery' | 'other';
 export type AlertStatus = 'pending' | 'verified' | 'resolved' | 'rejected';
 export type UserRole = 'citizen' | 'moderator' | 'admin';
 
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  address: string | null;
+  details: string | null;   // free text: appearance, medical info, who to call
+  role: UserRole;           // read-only to the client — column-level grant blocks writes
+  created_at: string;
+}
+
 export interface GeoPoint { lat: number; lng: number }
 
 export interface Alert {
@@ -41,6 +51,12 @@ export interface SosEvent {
   created_at: string;
   resolved_at: string | null;
   resolved_by: string | null;
+  // Joined from profiles by the sos_events_geo view. NULL when the viewer can't
+  // read that profile, or when the user never filled their details in.
+  reporter_name: string | null;
+  reporter_phone: string | null;
+  reporter_address: string | null;
+  reporter_details: string | null;
 }
 
 export interface SosPing {

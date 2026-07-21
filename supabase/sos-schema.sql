@@ -93,12 +93,21 @@ create policy "read own or staff pings" on sos_pings for select
   ));
 
 -- 6. Geo views (numeric lat/lng, same pattern as alerts_geo) ---
+-- reporter_* comes from profiles so an SOS reaches Gecko as a named person rather
+-- than "user needs help". LEFT JOIN, not INNER: with security_invoker the join is
+-- subject to profiles RLS, and an INNER JOIN would drop the whole SOS event for any
+-- viewer who can't read that profile.
 create or replace view sos_events_geo with (security_invoker = true) as
 select
   s.*,
   st_y(s.location::geometry) as lat,
-  st_x(s.location::geometry) as lng
-from sos_events s;
+  st_x(s.location::geometry) as lng,
+  p.full_name as reporter_name,
+  p.phone     as reporter_phone,
+  p.address   as reporter_address,
+  p.details   as reporter_details
+from sos_events s
+left join profiles p on p.id = s.user_id;
 
 create or replace view sos_pings_geo with (security_invoker = true) as
 select

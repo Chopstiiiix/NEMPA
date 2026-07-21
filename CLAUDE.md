@@ -201,3 +201,38 @@ npx cap add ios            # macOS + Xcode only
 | `npm run sync` | build + `cap sync` (run before native) |
 | `npm run android` | sync + open Android Studio |
 | `npm run ios` | sync + open Xcode |
+
+---
+
+## Profile details → SOS identity (2026-07-21)
+
+`profiles` gained `address` and `details` (free text for responders: appearance, medical
+info, who to call) alongside the existing `full_name` / `phone`. Users edit them in
+`src/components/ProfileCard.tsx` on the Account page.
+
+`sos_events_geo` LEFT JOINs `profiles` and exposes `reporter_name`, `reporter_phone`,
+`reporter_address`, `reporter_details`, so an SOS reaches Gecko as a named person instead
+of "user needs help". LEFT JOIN matters: the view is `security_invoker`, so an INNER JOIN
+would make the whole SOS event vanish for any viewer who can't read that profile.
+
+> ⚠️ **Use `update`, never `upsert`, on `profiles` from the client.** `upsert` compiles to
+> `INSERT … ON CONFLICT`, which needs an INSERT policy (there is none) and writes `id`,
+> which isn't in the column grant — it fails with `42501` for every user. The row is
+> guaranteed by the `handle_new_user()` signup trigger.
+
+### Security fix applied at the same time
+
+The `update own profile` policy proved only that the row was yours; it never constrained
+*which columns* changed, and Supabase grants table-wide UPDATE to `anon` + `authenticated`
+by default. Any signed-in user could `PATCH /rest/v1/profiles?id=eq.<self> {"role":"admin"}`,
+satisfy `is_staff()`, and read every profile, every pending alert, every SOS location trail
+and every reporter NIN. Fixed with column-level grants (`supabase/profile-details.sql`):
+
+```sql
+revoke update on profiles from anon, authenticated;
+grant update (full_name, phone, address, details) on profiles to authenticated;
+```
+
+Column grants rather than a policy `WITH CHECK`, because a check comparing against the
+caller's current role has to read `profiles` from inside a `profiles` policy, which recurses.
+**Any new user-writable column on `profiles` must be added to that grant**, or saving breaks.
