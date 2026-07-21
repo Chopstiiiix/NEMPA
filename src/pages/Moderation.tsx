@@ -14,10 +14,13 @@ const typeLabel: Record<string, string> = {
 interface ReporterDetails { alert_id: string; phone: string | null; nin: string | null }
 
 /**
- * Reports publish instantly — this queue is retroactive moderation:
- * take down false/abusive reports, resolve concluded ones, and see the
+ * Reports arrive as 'pending' and are held here until a moderator acts —
+ * verifying one is what publishes it to the community feed, the Gecko operator
+ * map, and the radius push. Also: resolve concluded reports, and see the
  * reporter's private contact details (phone/NIN side table, staff-only).
- * Legacy 'pending' rows can still be verified+broadcast from here.
+ *
+ * Enforced by RLS, not by hiding this page: the "staff moderate alerts" policy
+ * gates UPDATE on is_staff(), so this route being reachable is not a hole.
  */
 export default function Moderation() {
   const { userId, isStaff, loading: roleLoading } = useRole();
@@ -62,7 +65,8 @@ export default function Moderation() {
       setNotice(`${label} failed: ${error.message}`);
       return;
     }
-    // Legacy pending → verified still triggers the radius broadcast.
+    // Verifying is what publishes the report — this is the ONLY radius broadcast
+    // in the app, so nothing unreviewed can reach people's phones.
     if (status === 'verified') {
       const { data, error: fnErr } = await supabase.functions.invoke('broadcast-alert', {
         body: { alert_id: alert.id },

@@ -41,7 +41,28 @@ Everything compiles as a web app. Native folders (`/android`, `/ios`) are **not*
 - **Dev setting (revert before launch):** Auth → "Confirm email" is **OFF** so signups work instantly for testing. Re-enable before any real launch.
 
 To exercise moderation: sign up at `/account`, then promote yourself —
-`update profiles set role='moderator' where id='<your-uuid>';` — a **Review** tab appears.
+`update profiles set role='moderator' where id='<your-uuid>';` — then open `/moderate`
+directly (see "Moderation lives in Gecko" below; there is no longer a Review tab).
+
+### Moderation lives in Gecko (2026-07-21)
+
+Sparrowtell is the **citizen-side** app. Operator work — verify / reject / resolve,
+the SOS queue, reporter phone+NIN — belongs in **Gecko Intel** (`~/gecko_intel`), not here.
+The staff-gated **Review** tab was removed from `Nav.tsx` (and `useRole()` with it).
+
+`/moderate` is still routed in `App.tsx` and `Moderation.tsx` still gates on `isStaff`,
+but **nothing links to it** — and a Capacitor WebView has no address bar, so on a device
+it is effectively unreachable. That is intentional and it has a consequence:
+
+> ⚠️ Reports now insert as `pending` (`ReportForm.tsx` no longer sets `status`, and no
+> longer broadcasts). Verifying in `/moderate` is the **only** path that publishes to the
+> feed + fires the radius push. Until Gecko ships verify/reject, **reports stay pending
+> and nothing is broadcast.** SOS is unaffected — it never goes through review.
+
+Gecko's `src/app/api/sparrow/route.ts` is currently **read-only** (reads `sos_events_geo`
+and verified `alerts_geo`). It needs write endpoints, service-key-side, to close this loop.
+When it does, delete `Moderation.tsx`, `SosQueue`, the `/moderate` route, and `useRole.ts`
+from this repo — `useRole` has no other callers left.
 
 ### Design system
 
@@ -49,7 +70,7 @@ The UI uses an **"emergency dispatch / civic signal"** aesthetic (dark, high-con
 
 - **Fonts (self-hosted via @fontsource, offline-safe):** Bricolage Grotesque (display `--font-display`), IBM Plex Sans (body), IBM Plex Mono (labels/timestamps/IDs). Imported in `src/main.tsx`.
 - **Key classes:** `.page/.page__title/.page__sub`, `.card`, `.alert-card`, `.badge--missing|robbery|live|pending`, `.btn` family (`.btn-primary`, `.btn--live`, `.btn--danger`, `.btn--ghost`, `.btn--block/lg`), `.segment/.segment__item`, `.field/.field__label`, `.empty`, `.skeleton`, `.notice`, `.map-frame`, `.nav`, `.mono`, `.status-dot--live`.
-- **Shell:** `App.tsx` renders a sticky `.app-bar` + bottom `.nav`; the Review tab is staff-gated via `useRole()` (re-resolves on tab focus).
+- **Shell:** `App.tsx` renders a sticky `.app-bar` + bottom `.nav`; the nav is a fixed three-tab list (Alerts / Report / Account) for every user — no staff tab.
 - Old token names (`--signal`, `--surface`, `--r`, etc.) are kept as aliases for back-compat.
 
 Seed data includes 3 verified demo alerts (Lagos/Abuja/PH) + 1 pending. Remove with `delete from alerts where reporter_id is null or verified_by = '<seed-user>'` when you want a clean slate.
@@ -122,7 +143,7 @@ npx cap add ios            # macOS + Xcode only
 1. ✅ **Wire env + run** — `.env` wired to live project; Feed/dev server boot confirmed.
 2. ✅ **Photo upload** — `src/lib/photo.ts` (native Camera + `uploadAlertPhoto` to `alert-photos`); `ReportForm` has a picker + preview with a web `<input type=file>` fallback, uploads on submit and saves `photo_url`. Storage RLS verified (public read, authenticated insert).
 3. ✅ **Leaflet markers** — fixed in `AlertMap.tsx` (bundled icon URLs + retina/shadow).
-4. ✅ **Moderation screen** — `src/pages/Moderation.tsx`, route `/moderate`, staff-gated **Review** tab in `Nav` via `useRole()`. Lists pending alerts with Verify/Reject.
+4. ✅ **Moderation screen** — `src/pages/Moderation.tsx`, route `/moderate`. Lists pending alerts with Verify/Reject. **No longer surfaced in the nav** — see "Moderation lives in Gecko".
 5. ✅ **Broadcast trigger** — Verify calls the deployed `broadcast-alert` Edge Function (`supabase.functions.invoke`) after setting `status='verified'`. Broadcast failure is surfaced but doesn't un-verify.
 6. **Tips/sightings** — render + insert `alert_tips` on `AlertDetail`.
 7. **Foreground notifications** — use `@capacitor/local-notifications` to show pushes received while app is open.

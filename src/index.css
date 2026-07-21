@@ -478,8 +478,6 @@ label { display: block; font-family: var(--font-mono); font-size: 11px; letter-s
 .nav__icon svg { display: block; }
 .nav__item-icon { font-size: 20px; line-height: 1; }
 .nav__item--on { color: var(--leaf); }
-.nav__item--review.nav__item--on { color: var(--amber); }
-.nav__item--review .nav__pill { background: color-mix(in srgb, #22301C 80%, var(--amber) 14%); }
 
 /* ============================================================
    SOS — panic trigger UI

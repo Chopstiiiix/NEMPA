@@ -102,11 +102,13 @@ export default function ReportForm() {
       // Best-effort GPS — geo.ts caps the fix wait so this can't hang the form.
       const loc = await getCurrentLocation();
 
-      advance(85, 'Publishing alert…');
-      // Reports publish immediately; moderators take down false ones after the fact.
+      advance(85, 'Submitting alert…');
+      // Status is deliberately NOT set: the column defaults to 'pending', so a
+      // report waits for a moderator instead of publishing itself. Sending
+      // 'verified' here (as this used to) let any reporter self-verify straight
+      // onto the public feed and the Gecko operator map.
       const { data: row, error: insErr } = await supabase.from('alerts').insert({
         type,
-        status: 'verified',
         title: form.title,
         description: form.description || null,
         photo_url: photoUrl,
@@ -121,7 +123,7 @@ export default function ReportForm() {
         return;
       }
 
-      advance(95, 'Notifying people nearby…');
+      advance(95, 'Attaching contact details…');
       // Missing person's private phone/NIN — PII side table (reporter + staff only).
       if (type === 'missing_person' && (form.phone.trim() || form.nin.trim())) {
         await supabase.from('alert_reporter_details').insert({
@@ -131,10 +133,11 @@ export default function ReportForm() {
         });
       }
 
-      // Radius push to nearby devices — fire and forget; the alert is already live.
-      supabase.functions.invoke('broadcast-alert', { body: { alert_id: row.id } }).catch(() => {});
+      // NO broadcast here. The radius push to nearby devices fires when a
+      // moderator verifies the report (Moderation.tsx), so an unreviewed report
+      // can never be pushed to people's phones.
 
-      advance(100, 'Live — your alert is out.');
+      advance(100, 'Submitted — awaiting review.');
       setProgress(100);
       await new Promise((r) => setTimeout(r, 450)); // let 100% land
       clearPhoto();
@@ -164,7 +167,7 @@ export default function ReportForm() {
       </AnimatePresence>
 
       <h1 className="page__title">File a Report</h1>
-      <p className="page__sub">Goes live to the community instantly</p>
+      <p className="page__sub">Reviewed by a moderator before it goes out</p>
 
       <div className="segment" role="tablist" aria-label="Report type">
         {(['missing_person', 'robbery'] as const).map((t) => {
@@ -261,8 +264,10 @@ export default function ReportForm() {
       {error && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{error}</p>}
 
       <p className="mono" style={{ color: 'var(--text-mute)', margin: 'var(--s5) 0', textTransform: 'none', letterSpacing: 'normal' }}>
-        Your report is broadcast to the community immediately. False reports are
-        taken down by moderators and may lead to a ban.
+        A moderator reviews your report before it reaches the community. You can
+        see it in your own feed straight away. False reports are rejected and may
+        lead to a ban. If someone is in immediate danger, use SOS instead — that
+        is never held for review.
       </p>
 
       <button className="btn btn-primary btn--block btn--lg" disabled={!form.title || submitting} onClick={submit}>

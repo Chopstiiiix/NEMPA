@@ -1,37 +1,32 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useRole } from '../lib/useRole';
 import { BellIcon, PersonIcon } from './icons';
 
-interface Tab { to: string; label: string; render: (active: boolean) => ReactNode; key?: string }
+interface Tab { to: string; label: string; render: (active: boolean) => ReactNode }
 
 const glyph = (g: string) => () => <span className="nav__item-icon">{g}</span>;
 
-const baseTabs: Tab[] = [
+/**
+ * Sparrowtell is the citizen-side app — no moderation surface here. Staff work
+ * (verify / take down / SOS queue) belongs in Gecko Intel. `/moderate` is still
+ * routed, but reachable only by direct URL until Gecko owns it.
+ */
+const tabs: Tab[] = [
   { to: '/', label: 'Alerts', render: (a) => <BellIcon active={a} /> },
   { to: '/report', label: 'Report', render: glyph('＋') },
   { to: '/account', label: 'Account', render: (a) => <PersonIcon active={a} /> },
 ];
 
-const reviewTab: Tab = { to: '/moderate', label: 'Review', render: glyph('✓'), key: 'review' };
-
 export default function Nav() {
-  const { isStaff } = useRole();
-  const items: Tab[] = isStaff
-    ? [baseTabs[0], baseTabs[1], reviewTab, baseTabs[2]]
-    : baseTabs;
-
   return (
     <nav className="nav">
-      {items.map((t) => (
+      {tabs.map((t) => (
         <NavLink
           key={t.to}
           to={t.to}
           end={t.to === '/'}
-          className={({ isActive }) =>
-            `nav__item${t.key === 'review' ? ' nav__item--review' : ''}${isActive ? ' nav__item--on' : ''}`
-          }
+          className={({ isActive }) => `nav__item${isActive ? ' nav__item--on' : ''}`}
         >
           {({ isActive }) => (
             <>
