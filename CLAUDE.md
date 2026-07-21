@@ -246,6 +246,17 @@ so a slow encoder can't leave two recorders running against one stream.
 | Android Quick Settings tile | closed | `SosTileService.java` |
 | Android volume ×5 with screen off | closed, **opt-in** | `SosForegroundService.java` |
 
+> 🚨 **iOS volume triggers need the silent track in `VolumeButtonsPlugin.swift`.**
+> `AVAudioSession.outputVolume` tracks the **media** volume, but when nothing is playing the
+> hardware buttons adjust the **ringer** — the user gets a volume HUD, media volume never
+> moves, the KVO observer never fires, and not one event reaches JS. The plugin shipped this
+> way and volume-down ×5 did nothing on iOS at all, for anyone, from the day it was written.
+> Fix: loop a silent in-memory PCM buffer while enabled, which makes iOS treat the app as an
+> audio client and routes the buttons to media. `.ambient` + `.mixWithOthers` so it neither
+> ducks the user's music nor fights WebKit when `getUserMedia` switches the session to record.
+> If it still fails on device, the next thing to try is category `.playback` (also with
+> `.mixWithOthers`), which claims the route more assertively.
+
 The volume triggers stop the moment the app backgrounds — the iOS listener is a KVO
 observation on `AVAudioSession.outputVolume` bound to the bridge's view controller
 (`VolumeButtonsPlugin.swift`), and Android's is `dispatchKeyEvent` in MainActivity. **No
