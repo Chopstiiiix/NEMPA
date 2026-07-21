@@ -102,11 +102,11 @@ export default function ReportForm() {
       // Best-effort GPS — geo.ts caps the fix wait so this can't hang the form.
       const loc = await getCurrentLocation();
 
-      advance(85, 'Submitting alert…');
-      // Status is deliberately NOT set: the column defaults to 'pending', so a
-      // report waits for a moderator instead of publishing itself. Sending
-      // 'verified' here (as this used to) let any reporter self-verify straight
-      // onto the public feed and the Gecko operator map.
+      advance(85, 'Sending to responders…');
+      // Status is deliberately NOT set: the column defaults to 'pending', which
+      // means "with responders in Gecko, not yet public". Sending 'verified'
+      // here (as this used to) let any reporter push straight to the public feed
+      // and to every phone within 25km with no human in the loop.
       const { data: row, error: insErr } = await supabase.from('alerts').insert({
         type,
         title: form.title,
@@ -133,11 +133,11 @@ export default function ReportForm() {
         });
       }
 
-      // NO broadcast here. The radius push to nearby devices fires when a
-      // moderator verifies the report (Moderation.tsx), so an unreviewed report
-      // can never be pushed to people's phones.
+      // NO broadcast here. The report reaches Gecko the moment it is inserted;
+      // the radius push fires only when an operator there hits Broadcast, so an
+      // uninvestigated report can never be pushed to people's phones.
 
-      advance(100, 'Submitted — awaiting review.');
+      advance(100, 'Sent — responders have it.');
       setProgress(100);
       await new Promise((r) => setTimeout(r, 450)); // let 100% land
       clearPhoto();
@@ -167,7 +167,7 @@ export default function ReportForm() {
       </AnimatePresence>
 
       <h1 className="page__title">File a Report</h1>
-      <p className="page__sub">Reviewed by a moderator before it goes out</p>
+      <p className="page__sub">Goes to responders immediately</p>
 
       <div className="segment" role="tablist" aria-label="Report type">
         {(['missing_person', 'robbery'] as const).map((t) => {
@@ -264,10 +264,10 @@ export default function ReportForm() {
       {error && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{error}</p>}
 
       <p className="mono" style={{ color: 'var(--text-mute)', margin: 'var(--s5) 0', textTransform: 'none', letterSpacing: 'normal' }}>
-        A moderator reviews your report before it reaches the community. You can
-        see it in your own feed straight away. False reports are rejected and may
-        lead to a ban. If someone is in immediate danger, use SOS instead — that
-        is never held for review.
+        Your report reaches responders the moment you send it, and you can see it
+        in your own feed straight away. They decide whether to alert the wider
+        community. False reports may lead to a ban. If someone is in immediate
+        danger, use SOS instead — that goes out at once.
       </p>
 
       <button className="btn btn-primary btn--block btn--lg" disabled={!form.title || submitting} onClick={submit}>

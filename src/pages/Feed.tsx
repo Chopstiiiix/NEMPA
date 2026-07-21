@@ -21,8 +21,11 @@ export default function Feed() {
     else setLoading(true);
     let active = true;
     (async () => {
+      // 'pending' is safe to ask for: the alerts RLS policy only returns pending
+      // rows to their own reporter, so this shows you your report while it sits
+      // with responders — without leaking anyone else's un-broadcast report.
       let q = supabase.from('alerts').select('*')
-        .in('status', ['verified', 'resolved'])
+        .in('status', ['verified', 'resolved', 'pending'])
         .order('created_at', { ascending: false });
       if (filter !== 'all') q = q.eq('type', filter);
       const { data } = await q;

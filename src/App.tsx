@@ -10,7 +10,6 @@ import Feed from './pages/Feed';
 import ReportForm from './pages/ReportForm';
 import AlertDetail from './pages/AlertDetail';
 import Auth from './pages/Auth';
-import Moderation from './pages/Moderation';
 import logo from './assets/sparrow-logo.png';
 
 function AnimatedRoutes() {
@@ -29,7 +28,6 @@ function AnimatedRoutes() {
         <Route path="/" element={<Feed />} />
         <Route path="/report" element={<ReportForm />} />
         <Route path="/alert/:id" element={<AlertDetail />} />
-        <Route path="/moderate" element={<Moderation />} />
         <Route path="/account" element={<Auth />} />
       </Routes>
     </motion.div>

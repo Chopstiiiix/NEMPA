@@ -30,12 +30,11 @@ export async function registerPush(userId: string) {
     if (event.token) await saveDeviceToken(userId, event.token);
   });
 
-  // Deep-link when a notification is tapped: alerts open their detail page,
-  // SOS dispatches drop a moderator straight into the review queue.
+  // Deep-link when a notification is tapped. Alerts open their detail page.
+  // SOS pushes are handled in Gecko, not here, so there is nothing to open.
   await FirebaseMessaging.addListener('notificationActionPerformed', (action) => {
     const data = action.notification?.data as Record<string, unknown> | undefined;
     if (typeof data?.alert_id === 'string') window.location.hash = `/alert/${data.alert_id}`;
-    else if (typeof data?.sos_id === 'string') window.location.hash = '/moderate';
   });
 }
 

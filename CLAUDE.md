@@ -40,29 +40,42 @@ Everything compiles as a web app. Native folders (`/android`, `/ios`) are **not*
 - **Seed:** one sample `pending` alert (Adaeze Okoro, Ikeja) so the moderation queue is testable.
 - **Dev setting (revert before launch):** Auth → "Confirm email" is **OFF** so signups work instantly for testing. Re-enable before any real launch.
 
-To exercise moderation: sign up at `/account`, then promote yourself —
-`update profiles set role='moderator' where id='<your-uuid>';` — then open `/moderate`
-directly (see "Moderation lives in Gecko" below; there is no longer a Review tab).
+Moderation is no longer done in this app at all — see the next section. The `profiles.role`
+column and `is_staff()` still exist and still gate the RLS policies that Gecko will write
+through, so promoting an operator is still `update profiles set role='moderator' where id='<uuid>';`
 
-### Moderation lives in Gecko (2026-07-21)
+### No moderation in Sparrowtell — it all happens in Gecko (2026-07-21)
 
-Sparrowtell is the **citizen-side** app. Operator work — verify / reject / resolve,
-the SOS queue, reporter phone+NIN — belongs in **Gecko Intel** (`~/gecko_intel`), not here.
-The staff-gated **Review** tab was removed from `Nav.tsx` (and `useRole()` with it).
+Sparrowtell is the **citizen-side** app and has **no moderation surface at all**. There is
+no Review tab, no `/moderate` route, no `Moderation.tsx`, no `SosQueue`, no `useRole.ts` —
+all deleted. Operator work (investigate, broadcast, resolve, reporter phone+NIN, SOS queue)
+lives in **Gecko Intel** (`~/gecko_intel`).
 
-`/moderate` is still routed in `App.tsx` and `Moderation.tsx` still gates on `isStaff`,
-but **nothing links to it** — and a Capacitor WebView has no address bar, so on a device
-it is effectively unreachable. That is intentional and it has a consequence:
+There is no separate "moderation" step: **the investigation you already do in Gecko is the
+review.** A report reaches Gecko the instant it is filed. What still needs a human is the
+outbound blast — one operator click, in Gecko, on the screen where the investigating happens.
+Rationale: anyone who can create an account could otherwise push-notify every phone within
+25km, and a missing-person post broadcasts a real person's face and last-seen location.
 
-> ⚠️ Reports now insert as `pending` (`ReportForm.tsx` no longer sets `status`, and no
-> longer broadcasts). Verifying in `/moderate` is the **only** path that publishes to the
-> feed + fires the radius push. Until Gecko ships verify/reject, **reports stay pending
-> and nothing is broadcast.** SOS is unaffected — it never goes through review.
+The existing `alert_status` enum already models this, so **no schema change**:
 
-Gecko's `src/app/api/sparrow/route.ts` is currently **read-only** (reads `sos_events_geo`
-and verified `alerts_geo`). It needs write endpoints, service-key-side, to close this loop.
-When it does, delete `Moderation.tsx`, `SosQueue`, the `/moderate` route, and `useRole.ts`
-from this repo — `useRole` has no other callers left.
+| status | meaning |
+|---|---|
+| `pending` | filed — live in Gecko, visible to its own reporter, **not** public |
+| `verified` | an operator hit Broadcast — public feed + radius push |
+| `resolved` / `rejected` | as before |
+
+Sparrow side (done): `ReportForm` inserts without `status` (defaults `pending`) and does
+**not** call `broadcast-alert`. `Feed.tsx` asks for `pending` too — the alerts RLS policy
+(`schema.sql:119`) returns pending rows only to their own reporter, so you see your own
+report with a "With responders" badge and nobody else's. `push.ts` no longer deep-links
+SOS anywhere.
+
+> ⚠️ Gecko side (**not done** — this is the open loop): `src/app/api/sparrow/route.ts` is
+> read-only and queries `alerts_geo?status=eq.verified`, so filed reports do not appear yet.
+> It needs `status=in.(pending,verified)` plus a write path that sets `status='verified'`
+> and invokes the `broadcast-alert` Edge Function. **Until then nothing can ever be
+> broadcast.** SOS is unaffected — it flows instantly via `sos_events_geo` and is never gated.
 
 ### Design system
 
@@ -143,8 +156,8 @@ npx cap add ios            # macOS + Xcode only
 1. ✅ **Wire env + run** — `.env` wired to live project; Feed/dev server boot confirmed.
 2. ✅ **Photo upload** — `src/lib/photo.ts` (native Camera + `uploadAlertPhoto` to `alert-photos`); `ReportForm` has a picker + preview with a web `<input type=file>` fallback, uploads on submit and saves `photo_url`. Storage RLS verified (public read, authenticated insert).
 3. ✅ **Leaflet markers** — fixed in `AlertMap.tsx` (bundled icon URLs + retina/shadow).
-4. ✅ **Moderation screen** — `src/pages/Moderation.tsx`, route `/moderate`. Lists pending alerts with Verify/Reject. **No longer surfaced in the nav** — see "Moderation lives in Gecko".
-5. ✅ **Broadcast trigger** — Verify calls the deployed `broadcast-alert` Edge Function (`supabase.functions.invoke`) after setting `status='verified'`. Broadcast failure is surfaced but doesn't un-verify.
+4. ~~**Moderation screen**~~ — built, then **removed** from this app (2026-07-21). Moved to Gecko; see the section above.
+5. ⏳ **Broadcast trigger** — the `broadcast-alert` Edge Function is deployed and working, but nothing calls it any more. Gecko's Broadcast action must invoke it after setting `status='verified'`.
 6. **Tips/sightings** — render + insert `alert_tips` on `AlertDetail`.
 7. **Foreground notifications** — use `@capacitor/local-notifications` to show pushes received while app is open.
 8. **Resolve flow** — mark alerts resolved; auto-expire stale ones.

@@ -8,9 +8,8 @@ interface Tab { to: string; label: string; render: (active: boolean) => ReactNod
 const glyph = (g: string) => () => <span className="nav__item-icon">{g}</span>;
 
 /**
- * Sparrowtell is the citizen-side app — no moderation surface here. Staff work
- * (verify / take down / SOS queue) belongs in Gecko Intel. `/moderate` is still
- * routed, but reachable only by direct URL until Gecko owns it.
+ * Sparrowtell is the citizen-side app — there is no moderation surface here at
+ * all. Investigating a report and deciding to broadcast it happens in Gecko Intel.
  */
 const tabs: Tab[] = [
   { to: '/', label: 'Alerts', render: (a) => <BellIcon active={a} /> },

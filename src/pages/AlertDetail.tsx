@@ -28,13 +28,19 @@ export default function AlertDetail() {
   const typeCls = alert.type === 'robbery' ? 'robbery' : 'missing';
   const typeLabel = alert.type === 'robbery' ? 'Robbery' : 'Missing';
   const resolved = alert.status === 'resolved';
+  // Only ever your own report (RLS) — with responders, not yet broadcast.
+  const pending = alert.status === 'pending';
 
   const badges = (
     <>
       <span className={`badge badge--${typeCls}`}>{typeLabel}</span>
-      <span className={`badge ${resolved ? 'badge--resolved' : 'badge--unresolved'}`}>
-        {resolved ? 'Resolved' : 'Unresolved'}
-      </span>
+      {pending ? (
+        <span className="badge badge--pending">With responders</span>
+      ) : (
+        <span className={`badge ${resolved ? 'badge--resolved' : 'badge--unresolved'}`}>
+          {resolved ? 'Resolved' : 'Unresolved'}
+        </span>
+      )}
     </>
   );
 
