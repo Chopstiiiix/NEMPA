@@ -61,5 +61,10 @@
 	<string>Sparrowtell uses your location to tag where an incident occurred and to alert you to nearby emergencies.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>During a danger alert, Sparrowtell records background audio as evidence for responders. Recording only happens while an alert you triggered is active.</string>
+	<!-- Sparrowtell uses only standard HTTPS (Supabase, FCM), which is exempt under
+	     the US export regulations, so App Store Connect stops asking on every upload.
+	     Revisit this if the app ever adds its own cryptography. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

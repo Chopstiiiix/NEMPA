@@ -100,11 +100,17 @@ Push now uses **`@capacitor-firebase/messaging`** (not `@capacitor/push-notifica
 - `Info.plist` — `UIBackgroundModes: remote-notification` + Camera/Photos/Location usage strings.
 - `capacitor.config.ts` — `FirebaseMessaging.presentationOptions` for foreground alerts.
 
-**Still requires you (Xcode GUI + Apple Developer + Firebase console — can't be scripted):**
-1. Firebase console → add an **iOS app** (bundle `ng.nempa.app`) → download **`GoogleService-Info.plist`** → drag into Xcode under `App/App/` (check "Copy items if needed" + the App target). The plugin auto-configures Firebase from it; no `FirebaseApp.configure()` needed.
-2. Xcode → **Signing & Capabilities**: pick your team (needs a paid Apple Developer account) → **+ Capability → Push Notifications** (creates the `aps-environment` entitlement) → **+ Capability → Background Modes → Remote notifications**.
-3. Apple Developer → create an **APNs Auth Key (.p8)** → Firebase → Project settings → **Cloud Messaging → Apple app config → upload the APNs key** (with Key ID + Team ID).
-4. Run on a **real device** (`npm run ios` opens Xcode; the iOS simulator cannot get an APNs/FCM token).
+**Done as of 2026-07-21** (verified in the project, not assumed):
+- ✅ `GoogleService-Info.plist` present at `ios/App/App/`, `BUNDLE_ID` matches `ng.nempa.app`, referenced by the App target.
+- ✅ Signing: `DEVELOPMENT_TEAM = 5K46PLQ658`, automatic. `App.entitlements` has `aps-environment`.
+- ✅ `Info.plist`: `UIBackgroundModes` = remote-notification / audio / location, all usage strings, and `ITSAppUsesNonExemptEncryption = false` (HTTPS only — skips the export-compliance prompt on every upload).
+- Version/build: `MARKETING_VERSION 1.0` / `CURRENT_PROJECT_VERSION 1`. **Every App Store Connect upload needs a unique, higher build number.**
+
+**Still outstanding:**
+1. **APNs Auth Key (.p8)** → Apple Developer → Keys → upload to Firebase → Project settings → Cloud Messaging → Apple app config (with Key ID + Team ID `5K46PLQ658`). Downloads once only. **Until this is done, a TestFlight build installs fine and receives no push** — TestFlight uses the production APNs environment.
+2. Run on a **real device** (`npm run ios`; the simulator cannot get an APNs/FCM token).
+
+> ⚠️ `UIBackgroundModes` declares `location` and `sos.ts` runs `Geolocation.watchPosition` for the live SOS trail, but the only location usage string is `NSLocationWhenInUseUsageDescription`. Capacitor's Geolocation plugin only ever requests When-In-Use on iOS, so the trail stops when the app is backgrounded — and App Review rejects apps that declare the `location` background mode without a feature that justifies persistent location. Either drop `location` from `UIBackgroundModes`, or move to a plugin that requests Always authorisation and add `NSLocationAlwaysAndWhenInUseUsageDescription`.
 
 Server side (FCM secrets) is already done, so once a device registers its token, broadcasts deliver.
 
