@@ -5,10 +5,17 @@ import EmergencyContacts from '../components/EmergencyContacts';
 import ProfileCard from '../components/ProfileCard';
 import type { User } from '@supabase/supabase-js';
 
+// Only the address is remembered, never the password. The session itself always
+// persists (see lib/supabase.ts) — on a phone, staying signed in is the baseline
+// expectation, so this box is about not retyping your email, not about staying in.
+const REMEMBERED_EMAIL = 'sparrowtell.remembered_email';
+
 export default function Auth() {
   const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem(REMEMBERED_EMAIL) ?? '');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(() => localStorage.getItem(REMEMBERED_EMAIL) !== null);
+  const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [msg, setMsg] = useState('');
 
@@ -26,6 +33,10 @@ export default function Auth() {
 
   async function submit() {
     setMsg('');
+    // Persist the choice on submit, not on every keystroke, so a half-typed
+    // address never gets remembered.
+    if (remember) localStorage.setItem(REMEMBERED_EMAIL, email.trim());
+    else localStorage.removeItem(REMEMBERED_EMAIL);
     try {
       // Call directly — extracting these methods detaches `this` and throws.
       if (mode === 'signin') {
@@ -86,16 +97,36 @@ export default function Auth() {
 
         <div className="field">
           <label className="field__label" htmlFor="auth-password">Password</label>
-          <input
-            id="auth-password"
-            className="input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            placeholder="••••••••"
-          />
+          <div className="input-reveal">
+            <input
+              id="auth-password"
+              className="input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              className="input-reveal__btn"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-pressed={showPassword}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
+
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span>Remember my email</span>
+        </label>
 
         {msg && <p className="notice notice--error" style={{ marginTop: 'var(--s4)' }}>{msg}</p>}
 

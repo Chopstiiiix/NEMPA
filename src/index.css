@@ -323,6 +323,34 @@ input:focus, textarea:focus, select:focus, .input:focus {
   box-shadow: 0 0 0 3px var(--info-weak);
 }
 input::placeholder, textarea::placeholder { color: var(--text-mute); }
+
+/* password field with a Show/Hide reveal toggle */
+.input-reveal { position: relative; display: flex; align-items: center; }
+.input-reveal input { padding-right: 74px; }
+.input-reveal__btn {
+  position: absolute; right: 5px;
+  background: transparent; border: 0; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-dim);
+  padding: 9px 11px; border-radius: var(--r-sm);
+  transition: color 0.15s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.input-reveal__btn:active { color: var(--brand); }
+
+/* Checkbox row. Undoes two global rules that would otherwise wreck it: `label` is
+   block/uppercase/mono, and `input:not([type=file])` stretches every input to 100%
+   width with 13px padding — which turns a checkbox into a full-width slab. */
+.check {
+  display: flex; align-items: center; gap: 10px;
+  margin: var(--s4) 0 0; cursor: pointer;
+  font-family: var(--font-body); font-size: 14px; color: var(--text-dim);
+  text-transform: none; letter-spacing: normal;
+}
+.check input[type="checkbox"] {
+  width: 18px; height: 18px; flex: none;
+  padding: 0; margin: 0; accent-color: var(--brand);
+}
 label { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text-dim); margin: var(--s4) 0 7px; }
 
