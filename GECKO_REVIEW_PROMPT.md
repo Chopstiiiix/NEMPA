@@ -105,6 +105,29 @@ There's a new `alert_audit` table: `alert_id, action, actor_id, actor_label, sou
 SELECT, nothing can INSERT/UPDATE/DELETE through PostgREST. Show the history on the
 alert detail view so an operator can see who broadcast what, when, and to how many.
 
+### 5. Live-listen audio on SOS events
+
+SOS and danger alerts now stream audio in near-real-time. Build a player on the SOS detail
+view so an operator can hear what is happening while it happens.
+
+- Table `sos_audio_segments (id, sos_id, seq, path, created_at)`. Poll or subscribe by
+  `sos_id`, ordered by `seq`.
+- Each `path` is an object in the **private** `sos-evidence` bucket. Sign a URL server-side
+  with the service key (`/storage/v1/object/sign/sos-evidence/<path>`); never expose the
+  bucket or the key to the browser.
+- **Each segment is a complete, standalone audio file** (~8s). Play them in `seq` order.
+  Do NOT try to concatenate the raw bytes and decode the result — they are separate
+  containers, not fragments of one stream. Queue them into an `<audio>` element, or push
+  each through a Web Audio buffer source, one after another.
+- Expect gaps. Segments upload fire-and-forget, so a failed one is dropped rather than
+  retried — a missing `seq` means that slice never arrived, not that it is still coming.
+  Show the gap rather than stalling playback waiting for it.
+- Latency is roughly 8–16s behind live (segment length plus upload). Label it honestly in
+  the UI — an operator making decisions needs to know they are hearing the recent past, not
+  the present.
+- `sos_events.audio_path` now holds the segment *folder*, not a single file. If you use it
+  for anything beyond a truthiness check, update that.
+
 ## Constraints
 
 - Never write `alerts.status` directly. Every transition goes through `review-action`.

@@ -206,6 +206,35 @@ Seed data includes 3 verified demo alerts (Lagos/Abuja/PH) + 1 pending. Remove w
 
 Push now uses **`@capacitor-firebase/messaging`** (not `@capacitor/push-notifications`, which was removed) so `registerPush()` gets real **FCM tokens on both iOS and Android** — the `broadcast-alert` FCM v1 `token` send works unchanged on either platform. `src/lib/push.ts` uses `FirebaseMessaging.getToken()` + `tokenReceived`/`notificationActionPerformed` listeners. The web build stubs the optional `firebase/messaging` peer via `src/shims/firebase-messaging.ts` (aliased in `vite.config.ts`) — push is native-only, so the Firebase JS SDK is never bundled.
 
+### Live-listen audio (2026-07-21)
+
+Audio now records for **both** SOS and danger (it was danger-only, so a panic SOS — the flow
+people actually reach for — sent responders a location and nothing they could hear).
+
+⚠️ **MediaRecorder chunks are not independently playable.** Only the first carries the
+container header; the WebM clusters / MP4 fragments after it are undecodable alone. The old
+recorder worked around this by always concatenating from chunk zero and re-uploading the
+*entire take* every 20s — correct as an evidence file, useless for listening along, and it
+grows without bound over the connection of someone in trouble.
+
+`EvidenceRecorder` now **stops and restarts the recorder per segment**, so each upload is a
+complete standalone file. Cost: a gap of a few tens of ms per boundary while the encoder
+cycles. `SEGMENT_MS = 8000`. The next segment is chained from `onstop`, not from the timer,
+so a slow encoder can't leave two recorders running against one stream.
+
+- Storage: `sos-evidence/<user_id>/<sos_id>/seg-0001.webm`, zero-padded so a lexical sort is
+  chronological. Existing bucket policies check `foldername(name)[1] = auth.uid()`, which is
+  still the user id under the extra nesting — unchanged.
+- Index: `sos_audio_segments (sos_id, seq, path)`, `supabase/sos-live-audio.sql`, applied.
+  Insert is client-side by the SOS owner — no Edge Function hop, because an emergency upload
+  shouldn't depend on a function being warm. UPDATE/DELETE revoked: audio evidence that can
+  be silently rewritten isn't evidence.
+- **Uploads are fire-and-forget; a failed segment is dropped, never retried.** Retrying
+  queues audio behind a bad connection and delivers it minutes late, when what an operator
+  needs is the most recent sound in the room. A gap beats a backlog pretending to be live.
+- `sos_events.audio_path` now holds the segment **folder**, written once on seq 1. Gecko only
+  tests it for truthiness, so its existing code is unaffected.
+
 ### Emergency triggers — how SOS can be fired (2026-07-21)
 
 | Path | Works when app is… | Where |

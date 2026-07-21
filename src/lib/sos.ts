@@ -13,8 +13,9 @@ import type { EmergencyContact, GeoPoint, SosKind } from '../types';
  *     · insert sos_events row (status=active)
  *     · invoke sos-dispatch edge fn → high-priority FCM to moderators
  *     · watchPosition → sos_pings live trail (realtime → mods + Gecko Intel)
- *     · kind='danger': background audio via MediaRecorder, re-uploaded to
- *       the private sos-evidence bucket every 20s while active
+ *     · BOTH kinds: segmented audio via MediaRecorder — one standalone,
+ *       playable ~8s file at a time into the private sos-evidence bucket,
+ *       indexed in sos_audio_segments so Gecko can listen along near-live
  *     · kind='sos': open the SMS composer pre-filled with a live map link
  *       to every saved emergency contact
  *   stop('cancelled' | 'resolved') winds everything down.
@@ -58,7 +59,6 @@ export function getSosState() { return state; }
 
 let armTimer: ReturnType<typeof setInterval> | null = null;
 let watchId: string | null = null;
-let uploadTimer: ReturnType<typeof setInterval> | null = null;
 let lastPingAt = 0;
 const recorder = new EvidenceRecorder();
 
@@ -131,11 +131,10 @@ async function fire() {
   // responders a location and nothing they could hear. The permission is
   // primed during onboarding (EmergencySetup), so this no longer puts a
   // microphone dialog in front of someone mid-emergency.
-  const ok = await recorder.start();
+  const ok = await recorder.start((blob, seq, ext) => {
+    void uploadSegment(user.id, row.id, blob, seq, ext);
+  });
   set({ recordingOn: ok });
-  if (ok) {
-    uploadTimer = setInterval(() => void uploadEvidence(user.id, row.id), 20_000);
-  }
 
   if (state.kind !== 'danger') {
     // Panic SOS: hand the user a pre-filled SMS to their emergency contacts.
@@ -146,15 +145,13 @@ async function fire() {
 /** End the SOS. 'cancelled' = false alarm, 'resolved' = I'm safe now. */
 export async function stopSos(status: 'cancelled' | 'resolved' = 'resolved') {
   if (armTimer) { clearInterval(armTimer); armTimer = null; }
-  if (uploadTimer) { clearInterval(uploadTimer); uploadTimer = null; }
   if (watchId) { try { await Geolocation.clearWatch({ id: watchId }); } catch { /* noop */ } watchId = null; }
 
   const sosId = state.sosId;
-  const { data: auth } = await supabase.auth.getSession();
-  const user = auth.session?.user;
 
+  // Flushes the final partial segment through the same handler, so the last
+  // few seconds before the user marked themselves safe are not lost.
   await recorder.stop();
-  if (user && sosId) await uploadEvidence(user.id, sosId);
 
   if (sosId) {
     await supabase.from('sos_events')
@@ -198,17 +195,34 @@ async function insertPing(sosId: string, p: GeoPoint, accuracy: number | null) {
 
 // --- audio evidence -------------------------------------------
 
-async function uploadEvidence(userId: string, sosId: string) {
-  const blob = recorder.snapshot();
-  if (!blob || blob.size === 0) return;
-  const path = `${userId}/${sosId}.${recorder.ext}`;
+/**
+ * Upload one finished segment and index it so Gecko can play along.
+ *
+ * Deliberately fire-and-forget per segment: a segment that fails to upload is
+ * dropped rather than retried. Retrying would queue audio behind a bad
+ * connection and deliver it minutes late, when what an operator needs is the
+ * most recent sound in the room. A gap in the trail is more useful than a
+ * backlog pretending to be live.
+ */
+async function uploadSegment(
+  userId: string, sosId: string, blob: Blob, seq: number, ext: string,
+) {
+  if (blob.size === 0) return;
+  // Zero-padded so a plain lexical sort of the bucket is also chronological.
+  const path = `${userId}/${sosId}/seg-${String(seq).padStart(4, '0')}.${ext}`;
   const { error } = await supabase.storage
     .from('sos-evidence')
-    .upload(path, blob, { upsert: true, contentType: recorder.mimeType });
-  if (!error) {
-    await supabase.from('sos_events').update({ audio_path: path }).eq('id', sosId);
-  } else {
-    console.error('evidence upload failed', error.message);
+    .upload(path, blob, { upsert: true, contentType: blob.type || 'audio/webm' });
+  if (error) { console.error('segment upload failed', error.message); return; }
+
+  await supabase.from('sos_audio_segments').insert({ sos_id: sosId, seq, path });
+
+  // audio_path now points at the segment FOLDER, not a single file. Gecko only
+  // tests it for truthiness to show an audio indicator, so that keeps working;
+  // written once on the first segment rather than on every one.
+  if (seq === 1) {
+    await supabase.from('sos_events')
+      .update({ audio_path: `${userId}/${sosId}` }).eq('id', sosId);
   }
 }
 

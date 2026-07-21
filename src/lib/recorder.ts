@@ -1,17 +1,41 @@
 /**
- * Background audio evidence recorder for danger alerts.
+ * Segmented audio recorder for SOS and danger alerts.
  *
  * Uses the WebView's MediaRecorder (works in Capacitor: Android's
- * BridgeWebChromeClient grants getUserMedia when the app holds
- * RECORD_AUDIO; iOS WKWebView supports it from 14.3 with
- * NSMicrophoneUsageDescription). Chunks accumulate in memory so the
- * whole take can be (re-)uploaded while recording continues.
+ * BridgeWebChromeClient grants getUserMedia when the app holds RECORD_AUDIO;
+ * iOS WKWebView supports it from 14.3 with NSMicrophoneUsageDescription).
+ *
+ * ⚠️ Why the recorder is restarted for every segment rather than using
+ * `start(timeslice)` and uploading each chunk:
+ *
+ * MediaRecorder chunks are NOT independently playable. Only the first carries
+ * the container header — the WebM clusters or MP4 fragments that follow are
+ * undecodable on their own. The previous implementation sidestepped this by
+ * always concatenating from chunk zero and re-uploading the entire take, which
+ * is correct but grows without bound: a long SOS re-uploads an ever-larger
+ * file every 20 seconds, over the connection of someone in trouble.
+ *
+ * Stopping and restarting yields a complete, standalone file per segment, so
+ * an operator can play each one the moment it lands. The cost is a gap of a
+ * few tens of milliseconds at each boundary while the encoder cycles. For
+ * situational audio — what is being said, how many voices, is it escalating —
+ * that is not a meaningful loss, and it buys near-live listening without the
+ * signalling, TURN servers and battery cost of WebRTC.
  */
+
+/** Segment length. Shorter = lower latency, more requests on a bad connection. */
+const SEGMENT_MS = 8000;
+
+export type SegmentHandler = (blob: Blob, seq: number, ext: 'webm' | 'mp4') => void;
+
 export class EvidenceRecorder {
   private stream: MediaStream | null = null;
   private rec: MediaRecorder | null = null;
-  private chunks: Blob[] = [];
   private mime = '';
+  private seq = 0;
+  private rotateTimer: ReturnType<typeof setTimeout> | null = null;
+  private onSegment: SegmentHandler | null = null;
+  private stopping = false;
 
   get recording() { return this.rec?.state === 'recording'; }
 
@@ -22,8 +46,12 @@ export class EvidenceRecorder {
 
   get mimeType() { return this.mime || 'audio/webm'; }
 
-  /** Start capturing mic audio. Returns false if permission denied / unsupported. */
-  async start(): Promise<boolean> {
+  /**
+   * Start capturing. `onSegment` fires with each completed segment, in order,
+   * starting at seq 1. Returns false if permission was denied or the platform
+   * has no MediaRecorder.
+   */
+  async start(onSegment: SegmentHandler): Promise<boolean> {
     if (this.recording) return true;
     if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) return false;
     try {
@@ -31,10 +59,10 @@ export class EvidenceRecorder {
       // Chrome/Android WebView → webm/opus; Safari/WKWebView → mp4/aac.
       this.mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
         .find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
-      this.chunks = [];
-      this.rec = new MediaRecorder(this.stream, this.mime ? { mimeType: this.mime } : undefined);
-      this.rec.ondataavailable = (e) => { if (e.data.size > 0) this.chunks.push(e.data); };
-      this.rec.start(5000); // flush a chunk every 5s so uploads always have data
+      this.onSegment = onSegment;
+      this.seq = 0;
+      this.stopping = false;
+      this.beginSegment();
       return true;
     } catch (e) {
       console.error('recorder start failed', e);
@@ -43,28 +71,59 @@ export class EvidenceRecorder {
     }
   }
 
-  /** Snapshot of everything recorded so far (recording keeps going). */
-  snapshot(): Blob | null {
-    if (this.chunks.length === 0) return null;
-    return new Blob(this.chunks, { type: this.mimeType });
+  private beginSegment() {
+    if (!this.stream || this.stopping) return;
+    const parts: Blob[] = [];
+    const rec = new MediaRecorder(this.stream, this.mime ? { mimeType: this.mime } : undefined);
+    this.rec = rec;
+
+    rec.ondataavailable = (e) => { if (e.data.size > 0) parts.push(e.data); };
+    rec.onstop = () => {
+      if (parts.length > 0) {
+        this.seq += 1;
+        try {
+          this.onSegment?.(new Blob(parts, { type: this.mimeType }), this.seq, this.ext);
+        } catch (e) {
+          // A failed upload must never stop the recording — the next segment
+          // still needs to go out.
+          console.error('segment handler failed', e);
+        }
+      }
+      // Chain the next segment from onstop rather than the timer, so a slow
+      // encoder can never leave two recorders running against one stream.
+      if (!this.stopping) this.beginSegment();
+    };
+
+    try {
+      rec.start();
+      this.rotateTimer = setTimeout(() => {
+        if (rec.state === 'recording') { try { rec.stop(); } catch { /* noop */ } }
+      }, SEGMENT_MS);
+    } catch (e) {
+      console.error('segment start failed', e);
+    }
   }
 
-  /** Stop and return the final take. */
-  async stop(): Promise<Blob | null> {
+  /** Stop recording. The final partial segment is flushed through onSegment. */
+  async stop(): Promise<void> {
+    this.stopping = true;
+    if (this.rotateTimer) { clearTimeout(this.rotateTimer); this.rotateTimer = null; }
     const rec = this.rec;
-    if (!rec || rec.state === 'inactive') { this.cleanup(); return this.snapshot(); }
-    await new Promise<void>((resolve) => {
-      rec.onstop = () => resolve();
-      try { rec.stop(); } catch { resolve(); }
-    });
-    const blob = this.snapshot();
+    if (rec && rec.state !== 'inactive') {
+      await new Promise<void>((resolve) => {
+        const prior = rec.onstop;
+        rec.onstop = (ev) => { try { prior?.call(rec, ev as Event); } finally { resolve(); } };
+        try { rec.stop(); } catch { resolve(); }
+      });
+    }
     this.cleanup();
-    return blob;
   }
 
   private cleanup() {
+    if (this.rotateTimer) { clearTimeout(this.rotateTimer); this.rotateTimer = null; }
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
     this.rec = null;
+    this.onSegment = null;
   }
 }
