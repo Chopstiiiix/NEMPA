@@ -14,7 +14,19 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const RADIUS_M = 25_000; // 25 km broadcast radius — tune per city density
 
+// Same CORS preflight handling as sos-dispatch. This one has only ever been called
+// server-to-server (from Gecko, with the service key), where no preflight happens —
+// so the missing OPTIONS handler was invisible here. It would have broken the moment
+// anything called it from a browser or WebView.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const { alert_id } = await req.json();
     if (!alert_id) return json({ error: 'alert_id required' }, 400);
@@ -51,7 +63,14 @@ Deno.serve(async (req) => {
     //    account can't mint a token, surfacing credential problems as a 500.
     const token = await getFcmAccessToken();
     const projectId = Deno.env.get('FCM_PROJECT_ID')!;
-    const title = alert.type === 'missing_person' ? '🔍 Missing Person Alert' : '🚨 Robbery Alert';
+    // Lookup, not a ternary: alert_type gained 'other' (2026-07-21) and a two-way
+    // ternary would push every "other" incident to people's phones as a robbery.
+    const TITLES: Record<string, string> = {
+      missing_person: '🔍 Missing Person Alert',
+      robbery: '🚨 Robbery Alert',
+      other: '⚠️ Security Incident',
+    };
+    const title = TITLES[alert.type as string] ?? '⚠️ Security Incident';
 
     const results = await Promise.allSettled(
       (devices as { push_token: string }[]).map(async (d) => {
@@ -88,7 +107,7 @@ Deno.serve(async (req) => {
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
-    status, headers: { 'Content-Type': 'application/json' },
+    status, headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 }
 

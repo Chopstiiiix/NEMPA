@@ -236,3 +236,31 @@ grant update (full_name, phone, address, details) on profiles to authenticated;
 Column grants rather than a policy `WITH CHECK`, because a check comparing against the
 caller's current role has to read `profiles` from inside a `profiles` policy, which recurses.
 **Any new user-writable column on `profiles` must be added to that grant**, or saving breaks.
+
+---
+
+## Edge functions MUST handle OPTIONS (2026-07-21)
+
+`sos-dispatch` had returned **500 on every CORS preflight since it was written**, and there
+is not one successful POST to it in the logs. The SOS staff page had never fired, once.
+
+The app calls edge functions from a WebView, which is a different origin to `*.supabase.co`,
+so the browser sends an `OPTIONS` preflight first. Neither function handled it: the preflight
+hit `await req.json()`, found no body, threw, and the catch returned 500. **A failed preflight
+means the browser never sends the real POST** — and `sos.ts` invokes this fire-and-forget, so
+nothing surfaced. `broadcast-alert` had the identical bug; it just never showed because Gecko
+calls it server-to-server with the service key, where no preflight happens.
+
+Every edge function needs this as its first line, plus the CORS headers on *every* response
+(a response without them is discarded by the browser even when the status is 200):
+
+```ts
+if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+```
+
+The gateway lets `OPTIONS` through without a JWT even when `verify_jwt` is on, so this does
+not weaken auth — verified: preflight 200, unauthenticated POST still 401.
+
+> Worth doing eventually: `sos.ts` fires `sos-dispatch` from the client and ignores the
+> result, so any failure is invisible. A DB webhook on `sos_events` insert would page staff
+> even if the app is killed mid-SOS — which is exactly when it matters.

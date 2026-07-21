@@ -14,7 +14,20 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
+// The app calls this from a WebView, which is a different origin to *.supabase.co,
+// so the browser sends a CORS preflight first. Without an OPTIONS handler the
+// preflight fell into req.json() (no body), threw, and returned 500 — and a failed
+// preflight means the browser never sends the real POST at all. Every SOS page to
+// staff died here, silently, because the call site is fire-and-forget.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const { sos_id } = await req.json();
     if (!sos_id) return json({ error: 'sos_id required' }, 400);
@@ -95,8 +108,10 @@ Deno.serve(async (req) => {
 // --- helpers -------------------------------------------------
 
 function json(body: unknown, status = 200) {
+  // CORS headers on every response, not just the preflight — without them the
+  // browser discards the body and the caller sees an opaque network failure.
   return new Response(JSON.stringify(body), {
-    status, headers: { 'Content-Type': 'application/json' },
+    status, headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 }
 
